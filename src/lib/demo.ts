@@ -18,7 +18,7 @@ export const DEMO_PROFILES: Record<
     internalEmail: "demo-psicologa@pulso.local",
     displayEmail: "psicologa.demo@pulso.local",
     role: "PSYCHOLOGIST",
-    label: "Entrar como psicóloga demo",
+    label: "Entrar como profesional demo",
   },
   patient1: {
     name: "Paciente Demo 1",

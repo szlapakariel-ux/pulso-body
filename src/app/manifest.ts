@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Pulso",
-    short_name: "Pulso",
-    description: "Espacio simple para registrar y compartir con tu psicóloga",
+    name: "Pulso Body",
+    short_name: "Pulso Body",
+    description: "Bitácora diaria de nutrición, ejercicio, peso y medidas, guiada por tu profesional",
     start_url: "/",
     display: "standalone",
     background_color: "#F8F7F2",
