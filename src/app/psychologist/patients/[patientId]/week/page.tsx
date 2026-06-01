@@ -14,6 +14,15 @@ import {
   formatDuration,
   type ExerciseType,
 } from "@/lib/exercises";
+import {
+  ADHERENCE_LABEL,
+  scheduleAppliesToday,
+} from "@/lib/meal-schedules";
+import {
+  resolveMealAdherence,
+  type ScheduleForAdherence,
+  type AdherenceResult,
+} from "@/lib/meal-adherence";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +74,7 @@ export default async function PatientWeekForPsychologist({
 
   const range = { gte: start, lte: end };
 
-  const [meals, measurements, exercises] = await Promise.all([
+  const [meals, measurements, exercises, schedules] = await Promise.all([
     prisma.timelineEntry.findMany({
       where: {
         patientId: params.patientId,
@@ -112,6 +121,14 @@ export default async function PatientWeekForPsychologist({
         recordedAt: true,
       },
     }),
+    prisma.mealSchedule.findMany({
+      where: {
+        patientId: params.patientId,
+        psychologistId: user.id,
+        status: "ACTIVE",
+      },
+      orderBy: { targetTime: "asc" },
+    }),
   ]);
 
   type DayBucket = {
@@ -149,9 +166,95 @@ export default async function PatientWeekForPsychologist({
     byKey.get(dayKey(e.recordedAt))?.exercises.push(e);
   }
 
+  const todayKey = dayKey(now);
+
+  type AdherenceRow = {
+    id: string;
+    targetTime: string;
+    title: string;
+    state: AdherenceResult["state"];
+  };
+  type AdherenceForDay = {
+    expected: number;
+    onTime: number;
+    late: number;
+    pending: number;
+    omitted: number;
+    rows: AdherenceRow[];
+  };
+
+  function adherenceForDay(b: (typeof buckets)[number]): AdherenceForDay {
+    const referenceDate = b.key === todayKey ? now : endOfLocalDay(b.date);
+    const applicable = schedules
+      .filter((s) =>
+        scheduleAppliesToday(
+          {
+            daysOfWeek: s.daysOfWeek,
+            status: s.status,
+            startsAt: s.startsAt,
+            endsAt: s.endsAt,
+          },
+          b.date,
+        ),
+      )
+      .map<ScheduleForAdherence>((s) => ({
+        id: s.id,
+        mealSlot: s.mealSlot as MealSlot,
+        targetTime: s.targetTime,
+        daysOfWeek: s.daysOfWeek,
+        status: s.status,
+        startsAt: s.startsAt,
+        endsAt: s.endsAt,
+      }));
+    const mealsForDay = b.meals.map((m) => ({
+      id: m.id,
+      mealSlot: m.mealSlot as MealSlot | null,
+      recordedAt: m.recordedAt,
+    }));
+    const rows: AdherenceRow[] = applicable.map((sched) => {
+      const result = resolveMealAdherence(sched, mealsForDay, referenceDate);
+      const orig = schedules.find((s) => s.id === sched.id);
+      const title = orig?.label?.trim() || MEAL_SLOT_LABEL[sched.mealSlot];
+      return {
+        id: sched.id,
+        targetTime: sched.targetTime,
+        title,
+        state: result.state,
+      };
+    });
+    return {
+      expected: rows.length,
+      onTime: rows.filter((r) => r.state === "REGISTRADO").length,
+      late: rows.filter((r) => r.state === "REGISTRADO_TARDE").length,
+      pending: rows.filter((r) => r.state === "PENDIENTE").length,
+      omitted: rows.filter((r) => r.state === "OMITIDO").length,
+      rows,
+    };
+  }
+
+  const adherenceByDay = new Map<string, AdherenceForDay>(
+    buckets.map((b) => [b.key, adherenceForDay(b)]),
+  );
+
+  const weekTotals = {
+    expected: 0,
+    onTime: 0,
+    late: 0,
+    pending: 0,
+    omitted: 0,
+  };
+  for (const a of adherenceByDay.values()) {
+    weekTotals.expected += a.expected;
+    weekTotals.onTime += a.onTime;
+    weekTotals.late += a.late;
+    weekTotals.pending += a.pending;
+    weekTotals.omitted += a.omitted;
+  }
+
   const orderedBuckets = [...buckets].reverse();
 
   const backToTimeline = `/psychologist/patients/${params.patientId}/timeline`;
+  const mealSchedulesHref = `/psychologist/patients/${params.patientId}/meal-schedules`;
 
   return (
     <div className="space-y-6">
@@ -168,6 +271,45 @@ export default async function PatientWeekForPsychologist({
         </p>
       </div>
 
+      <section className="card space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Adherencia semanal de comidas</h3>
+          <Link href={mealSchedulesHref} className="text-xs text-pulso-soft underline">
+            Configurar comidas
+          </Link>
+        </div>
+        {weekTotals.expected === 0 ? (
+          <p className="text-sm text-pulso-soft">
+            Este paciente no tiene comidas programadas para esta semana.
+          </p>
+        ) : (
+          <p className="text-sm">
+            Registradas:{" "}
+            <span className="font-medium">
+              {weekTotals.onTime}/{weekTotals.expected}
+            </span>
+            {weekTotals.late > 0 && (
+              <span className="text-pulso-soft">
+                {" · Tarde: "}
+                {weekTotals.late}
+              </span>
+            )}
+            {weekTotals.pending > 0 && (
+              <span className="text-pulso-soft">
+                {" · Pendientes: "}
+                {weekTotals.pending}
+              </span>
+            )}
+            {weekTotals.omitted > 0 && (
+              <span className="text-pulso-soft">
+                {" · Omitidas: "}
+                {weekTotals.omitted}
+              </span>
+            )}
+          </p>
+        )}
+      </section>
+
       {orderedBuckets.map((b) => {
         const mealsCount = b.meals.length;
         const mealsWithPhoto = b.meals.filter((m) => Boolean(m.mediaKey)).length;
@@ -179,8 +321,12 @@ export default async function PatientWeekForPsychologist({
           0,
         );
         const exerciseTotalLabel = formatDuration(exerciseMinutes);
+        const a = adherenceByDay.get(b.key)!;
         const empty =
-          mealsCount === 0 && measurementsCount === 0 && exercisesCount === 0;
+          mealsCount === 0 &&
+          measurementsCount === 0 &&
+          exercisesCount === 0 &&
+          a.expected === 0;
 
         return (
           <section key={b.key} className="card space-y-3">
@@ -189,6 +335,50 @@ export default async function PatientWeekForPsychologist({
               <p className="text-sm text-pulso-soft">Sin registros.</p>
             ) : (
               <div className="space-y-3 text-sm">
+                <div>
+                  {a.expected === 0 ? (
+                    <p className="text-pulso-soft">
+                      <span className="font-medium text-pulso-fg">Adherencia comidas:</span>{" "}
+                      Sin comidas programadas.
+                    </p>
+                  ) : (
+                    <p>
+                      <span className="font-medium">Adherencia comidas:</span>{" "}
+                      {a.onTime}/{a.expected} registradas
+                      {a.late > 0 && (
+                        <span className="text-pulso-soft">
+                          {" · "}
+                          {a.late} tarde
+                        </span>
+                      )}
+                      {a.pending > 0 && (
+                        <span className="text-pulso-soft">
+                          {" · "}
+                          {a.pending} pendiente{a.pending === 1 ? "" : "s"}
+                        </span>
+                      )}
+                      {a.omitted > 0 && (
+                        <span className="text-pulso-soft">
+                          {" · "}
+                          {a.omitted} omitida{a.omitted === 1 ? "" : "s"}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  {a.rows.length > 0 && (
+                    <ul className="mt-1 flex flex-wrap gap-2">
+                      {a.rows.map((row) => (
+                        <li
+                          key={row.id}
+                          className="rounded-full bg-pulso-mute px-2 py-0.5 text-xs"
+                        >
+                          {row.targetTime} · {row.title} · {ADHERENCE_LABEL[row.state]}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
                 <div>
                   <p>
                     <span className="font-medium">Comidas:</span> {mealsCount}
