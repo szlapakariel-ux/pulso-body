@@ -30,6 +30,15 @@ const InitBody = z.object({
   contextNote: z.string().max(280).optional(),
 });
 
+const MealSlotEnum = z.enum([
+  "BREAKFAST",
+  "SNACK_AM",
+  "LUNCH",
+  "SNACK_PM",
+  "DINNER",
+  "CUSTOM",
+]);
+
 const CompleteBody = z.object({
   action: z.literal("complete"),
   mediaType: z.enum(["AUDIO", "VIDEO", "PHOTO"]),
@@ -37,9 +46,20 @@ const CompleteBody = z.object({
   recordedAt: z.string().datetime().optional(),
   contextLabel: ContextLabel,
   contextNote: z.string().max(280).optional(),
+  entryKind: z.enum(["GENERIC", "MEAL"]).optional(),
+  mealSlot: MealSlotEnum.optional(),
 });
 
 const Body = z.union([InitBody, CompleteBody]);
+
+const MEAL_SLOT_LABEL: Record<z.infer<typeof MealSlotEnum>, string> = {
+  BREAKFAST: "Desayuno",
+  SNACK_AM: "Colación",
+  LUNCH: "Almuerzo",
+  SNACK_PM: "Merienda",
+  DINNER: "Cena",
+  CUSTOM: "Otra comida",
+};
 
 function buildInternalTitle(
   mediaType: "AUDIO" | "VIDEO" | "PHOTO",
@@ -51,6 +71,12 @@ function buildInternalTitle(
   const kind = mediaType === "AUDIO" ? "Audio" : mediaType === "VIDEO" ? "Video" : "Foto";
   const ctx = contextLabel ? ` · ${contextLabel}` : "";
   return `${kind}${ctx} · ${hh}:${mm}`;
+}
+
+function buildMealTitle(slot: z.infer<typeof MealSlotEnum>, when: Date): string {
+  const hh = String(when.getHours()).padStart(2, "0");
+  const mm = String(when.getMinutes()).padStart(2, "0");
+  return `Comida · ${MEAL_SLOT_LABEL[slot]} · ${hh}:${mm}`;
 }
 
 export async function POST(req: Request) {
@@ -79,12 +105,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ uploadUrl, key });
     }
 
-    const { mediaType, mediaKey, recordedAt, contextLabel, contextNote } = parsed.data;
+    const {
+      mediaType,
+      mediaKey,
+      recordedAt,
+      contextLabel,
+      contextNote,
+      entryKind: rawEntryKind,
+      mealSlot,
+    } = parsed.data;
     if (!mediaKey.startsWith(`patients/${user.id}/`)) {
       throw new HttpError(403, "Key inválida");
     }
+    const entryKind = rawEntryKind ?? "GENERIC";
+    if (entryKind === "MEAL") {
+      if (mediaType !== "PHOTO") {
+        throw new HttpError(400, "El registro de comida debe ser una foto.");
+      }
+      if (!mealSlot) {
+        throw new HttpError(400, "Falta el momento de la comida.");
+      }
+    }
     const when = recordedAt ? new Date(recordedAt) : new Date();
-    const title = buildInternalTitle(mediaType, contextLabel, when);
+    const title =
+      entryKind === "MEAL" && mealSlot
+        ? buildMealTitle(mealSlot, when)
+        : buildInternalTitle(mediaType, contextLabel, when);
     const entry = await prisma.timelineEntry.create({
       data: {
         patientId: user.id,
@@ -95,6 +141,8 @@ export async function POST(req: Request) {
         recordedAt: when,
         contextLabel: contextLabel ?? null,
         contextNote: contextNote?.trim() || null,
+        entryKind,
+        mealSlot: entryKind === "MEAL" ? mealSlot ?? null : null,
       },
     });
     return NextResponse.json({ id: entry.id });
