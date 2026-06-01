@@ -3,7 +3,13 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireRolePage } from "@/lib/auth";
 import { presignDownload } from "@/lib/s3";
-import { groupByDay, formatDateTime } from "@/lib/dates";
+import {
+  groupByDay,
+  formatDateTime,
+  startOfLocalDay,
+  endOfLocalDay,
+  formatHHMM,
+} from "@/lib/dates";
 import { displayEmailFor } from "@/lib/demo";
 import EntryControls from "./entry-controls";
 import VideoCard from "@/components/video-card";
@@ -22,23 +28,6 @@ import {
 } from "@/lib/exercises";
 
 export const dynamic = "force-dynamic";
-
-function startOfLocalDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-function endOfLocalDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
-}
-
-function formatHHMM(d: Date): string {
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
-}
 
 export default async function PatientTimelinePage({
   params,
