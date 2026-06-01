@@ -19,7 +19,7 @@ type AgendaItem = {
 
 const AGENDA: AgendaItem[] = [
   { id: "breakfast", time: "08:00", title: "Desayuno", kind: "MEAL", status: "PENDING", mealSlot: "BREAKFAST" },
-  { id: "weight", time: "08:00", title: "Peso / medidas", kind: "MEASUREMENT", status: "OUT_OF_SCOPE" },
+  { id: "weight", time: "08:00", title: "Peso / medidas", kind: "MEASUREMENT", status: "PENDING" },
   { id: "snack-am", time: "11:00", title: "Colación", kind: "MEAL", status: "PENDING", mealSlot: "SNACK_AM" },
   { id: "lunch", time: "13:30", title: "Almuerzo", kind: "MEAL", status: "PENDING", mealSlot: "LUNCH" },
   { id: "snack-pm", time: "17:00", title: "Merienda", kind: "MEAL", status: "PENDING", mealSlot: "SNACK_PM" },
@@ -119,6 +119,13 @@ export default async function PatientTodayPage() {
                     className="btn-primary text-sm"
                   >
                     Registrar con foto
+                  </Link>
+                ) : item.kind === "MEASUREMENT" ? (
+                  <Link
+                    href="/patient/measurements/new?type=weight"
+                    className="btn-primary text-sm"
+                  >
+                    Registrar
                   </Link>
                 ) : (
                   <button
