@@ -135,6 +135,12 @@ export default async function PatientTimelinePage({
         </Link>
         <h2 className="text-2xl font-semibold mt-2">{profile.user.name}</h2>
         <p className="text-pulso-soft text-sm">{displayEmailFor(profile.user.email)}</p>
+        <Link
+          href={`/psychologist/patients/${params.patientId}/today`}
+          className="btn-ghost text-sm mt-2 inline-flex"
+        >
+          Ver resumen de hoy
+        </Link>
       </div>
 
       <section className="card space-y-2">
