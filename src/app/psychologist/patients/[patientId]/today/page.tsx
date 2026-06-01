@@ -17,6 +17,14 @@ import {
   type ExerciseIntensity,
   type ExerciseType,
 } from "@/lib/exercises";
+import {
+  ADHERENCE_LABEL,
+  scheduleAppliesToday,
+} from "@/lib/meal-schedules";
+import {
+  resolveMealAdherence,
+  type ScheduleForAdherence,
+} from "@/lib/meal-adherence";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +70,7 @@ export default async function PatientTodayForPsychologist({
     lte: endOfLocalDay(now),
   };
 
-  const [meals, measurements, exercises] = await Promise.all([
+  const [meals, measurements, exercises, schedules] = await Promise.all([
     prisma.timelineEntry.findMany({
       where: {
         patientId: params.patientId,
@@ -114,6 +122,14 @@ export default async function PatientTodayForPsychologist({
         mediaKey: true,
       },
     }),
+    prisma.mealSchedule.findMany({
+      where: {
+        patientId: params.patientId,
+        psychologistId: user.id,
+        status: "ACTIVE",
+      },
+      orderBy: { targetTime: "asc" },
+    }),
   ]);
 
   const mealsWithUrls = await Promise.all(
@@ -141,7 +157,57 @@ export default async function PatientTodayForPsychologist({
   );
   const totalLabel = formatDuration(totalExerciseMinutes);
 
+  const schedulesForToday: Array<
+    ScheduleForAdherence & { label: string | null }
+  > = schedules
+    .filter((s) =>
+      scheduleAppliesToday(
+        {
+          daysOfWeek: s.daysOfWeek,
+          status: s.status,
+          startsAt: s.startsAt,
+          endsAt: s.endsAt,
+        },
+        now,
+      ),
+    )
+    .map((s) => ({
+      id: s.id,
+      mealSlot: s.mealSlot as MealSlot,
+      targetTime: s.targetTime,
+      daysOfWeek: s.daysOfWeek,
+      status: s.status,
+      startsAt: s.startsAt,
+      endsAt: s.endsAt,
+      label: s.label,
+    }));
+
+  const mealsForAdherence = meals.map((m) => ({
+    id: m.id,
+    mealSlot: m.mealSlot as MealSlot | null,
+    recordedAt: m.recordedAt,
+  }));
+
+  const adherenceRows = schedulesForToday.map((sched) => {
+    const result = resolveMealAdherence(sched, mealsForAdherence, now);
+    return {
+      id: sched.id,
+      targetTime: sched.targetTime,
+      title: sched.label?.trim() || MEAL_SLOT_LABEL[sched.mealSlot],
+      state: result.state,
+    };
+  });
+
+  const adherenceCount = {
+    expected: adherenceRows.length,
+    registered: adherenceRows.filter((r) => r.state === "REGISTRADO").length,
+    late: adherenceRows.filter((r) => r.state === "REGISTRADO_TARDE").length,
+    pending: adherenceRows.filter((r) => r.state === "PENDIENTE").length,
+    omitted: adherenceRows.filter((r) => r.state === "OMITIDO").length,
+  };
+
   const backToTimeline = `/psychologist/patients/${params.patientId}/timeline`;
+  const mealSchedulesHref = `/psychologist/patients/${params.patientId}/meal-schedules`;
 
   return (
     <div className="space-y-6">
@@ -155,6 +221,61 @@ export default async function PatientTodayForPsychologist({
         </p>
         <p className="text-sm mt-1 capitalize">{formatToday()}</p>
       </div>
+
+      <section className="card space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Adherencia de comidas</h3>
+          <Link href={mealSchedulesHref} className="text-xs text-pulso-soft underline">
+            Configurar comidas
+          </Link>
+        </div>
+        {adherenceRows.length === 0 ? (
+          <p className="text-sm text-pulso-soft">
+            Este paciente todavía no tiene comidas programadas para hoy.
+          </p>
+        ) : (
+          <div className="space-y-3 text-sm">
+            <p>
+              Registradas:{" "}
+              <span className="font-medium">
+                {adherenceCount.registered}/{adherenceCount.expected}
+              </span>
+              {adherenceCount.late > 0 && (
+                <span className="text-pulso-soft">
+                  {" · Tarde: "}
+                  {adherenceCount.late}
+                </span>
+              )}
+              {adherenceCount.pending > 0 && (
+                <span className="text-pulso-soft">
+                  {" · Pendientes: "}
+                  {adherenceCount.pending}
+                </span>
+              )}
+              {adherenceCount.omitted > 0 && (
+                <span className="text-pulso-soft">
+                  {" · Omitidas: "}
+                  {adherenceCount.omitted}
+                </span>
+              )}
+            </p>
+            <ul className="space-y-1">
+              {adherenceRows.map((row) => (
+                <li key={row.id} className="flex items-center justify-between gap-3">
+                  <span>
+                    <span className="text-pulso-soft">{row.targetTime}</span>
+                    {" · "}
+                    <span className="font-medium">{row.title}</span>
+                  </span>
+                  <span className="text-xs text-pulso-soft">
+                    {ADHERENCE_LABEL[row.state]}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
 
       <section className="card space-y-3">
         <div className="flex items-center justify-between gap-3">
