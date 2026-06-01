@@ -156,7 +156,15 @@ export default async function PatientTimelinePage({
       </section>
 
       <section className="card space-y-2">
-        <h3 className="text-sm font-semibold">Peso y medidas</h3>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Peso y medidas</h3>
+          <Link
+            href={`/psychologist/patients/${params.patientId}/measurements`}
+            className="text-xs text-pulso-soft underline"
+          >
+            Ver historial de mediciones
+          </Link>
+        </div>
         {recentMeasurements.length === 0 ? (
           <p className="text-sm text-pulso-soft">
             Todavía no hay peso o medidas registradas.

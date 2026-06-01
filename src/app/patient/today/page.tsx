@@ -76,6 +76,14 @@ export default async function PatientTodayPage() {
     mealsToday.map((e) => e.mealSlot).filter((s): s is MealSlot => Boolean(s)),
   );
 
+  const measurementsTodayCount = await prisma.measurementEntry.count({
+    where: {
+      patientId: user.id,
+      recordedAt: { gte: startOfLocalDay(now), lte: endOfLocalDay(now) },
+    },
+  });
+  const measurementRegistered = measurementsTodayCount > 0;
+
   return (
     <div className="space-y-6">
       <div>
@@ -92,8 +100,10 @@ export default async function PatientTodayPage() {
       <section className="space-y-3">
         {AGENDA.map((item) => {
           const isMeal = item.kind === "MEAL";
+          const isMeasurement = item.kind === "MEASUREMENT";
           const isRegistered =
-            isMeal && item.mealSlot && registeredSlots.has(item.mealSlot);
+            (isMeal && item.mealSlot && registeredSlots.has(item.mealSlot)) ||
+            (isMeasurement && measurementRegistered);
           const status: AgendaStatus = isRegistered ? "REGISTERED" : item.status;
           return (
             <article key={item.id} className="card space-y-2">
@@ -120,13 +130,36 @@ export default async function PatientTodayPage() {
                   >
                     Registrar con foto
                   </Link>
-                ) : item.kind === "MEASUREMENT" ? (
-                  <Link
-                    href="/patient/measurements/new?type=weight"
-                    className="btn-primary text-sm"
-                  >
-                    Registrar
-                  </Link>
+                ) : isMeasurement && measurementRegistered ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href="/patient/measurements"
+                      className="btn-ghost text-sm"
+                    >
+                      Ver historial
+                    </Link>
+                    <Link
+                      href="/patient/measurements/new?type=weight"
+                      className="btn-ghost text-sm"
+                    >
+                      Registrar otra
+                    </Link>
+                  </div>
+                ) : isMeasurement ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href="/patient/measurements/new?type=weight"
+                      className="btn-primary text-sm"
+                    >
+                      Registrar
+                    </Link>
+                    <Link
+                      href="/patient/measurements"
+                      className="btn-ghost text-sm"
+                    >
+                      Ver historial
+                    </Link>
+                  </div>
                 ) : (
                   <button
                     type="button"
