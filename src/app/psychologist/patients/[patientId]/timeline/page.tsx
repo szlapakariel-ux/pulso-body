@@ -13,6 +13,13 @@ import {
   formatMeasurementValue,
   type MeasurementType,
 } from "@/lib/measurements";
+import {
+  EXERCISE_INTENSITY_LABEL,
+  EXERCISE_TYPE_LABEL,
+  formatDuration,
+  type ExerciseIntensity,
+  type ExerciseType,
+} from "@/lib/exercises";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +97,20 @@ export default async function PatientTimelinePage({
       type: true,
       value: true,
       unit: true,
+      note: true,
+      recordedAt: true,
+    },
+  });
+
+  const recentExercises = await prisma.exerciseEntry.findMany({
+    where: { patientId: params.patientId, psychologistId: user.id },
+    orderBy: { recordedAt: "desc" },
+    take: 3,
+    select: {
+      id: true,
+      type: true,
+      durationMinutes: true,
+      intensity: true,
       note: true,
       recordedAt: true,
     },
@@ -186,6 +207,45 @@ export default async function PatientTimelinePage({
                   <span className="text-pulso-soft">{formatHHMM(m.recordedAt)}</span>
                   {m.note && (
                     <span className="text-pulso-soft italic"> · “{m.note}”</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="card space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Ejercicio</h3>
+          <Link
+            href={`/psychologist/patients/${params.patientId}/exercises`}
+            className="text-xs text-pulso-soft underline"
+          >
+            Ver historial de ejercicio
+          </Link>
+        </div>
+        {recentExercises.length === 0 ? (
+          <p className="text-sm text-pulso-soft">
+            Todavía no hay actividad física registrada.
+          </p>
+        ) : (
+          <ul className="space-y-1 text-sm">
+            {recentExercises.map((e) => {
+              const label = EXERCISE_TYPE_LABEL[e.type as ExerciseType];
+              const durationLabel = formatDuration(e.durationMinutes);
+              const intensityLabel = e.intensity
+                ? EXERCISE_INTENSITY_LABEL[e.intensity as ExerciseIntensity]
+                : null;
+              return (
+                <li key={e.id}>
+                  <span className="font-medium">{label}</span>
+                  {durationLabel ? <> · {durationLabel}</> : null}
+                  {intensityLabel ? <> · {intensityLabel}</> : null}
+                  {" · "}
+                  <span className="text-pulso-soft">{formatHHMM(e.recordedAt)}</span>
+                  {e.note && (
+                    <span className="text-pulso-soft italic"> · “{e.note}”</span>
                   )}
                 </li>
               );

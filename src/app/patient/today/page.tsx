@@ -23,7 +23,7 @@ const AGENDA: AgendaItem[] = [
   { id: "snack-am", time: "11:00", title: "Colación", kind: "MEAL", status: "PENDING", mealSlot: "SNACK_AM" },
   { id: "lunch", time: "13:30", title: "Almuerzo", kind: "MEAL", status: "PENDING", mealSlot: "LUNCH" },
   { id: "snack-pm", time: "17:00", title: "Merienda", kind: "MEAL", status: "PENDING", mealSlot: "SNACK_PM" },
-  { id: "exercise", time: "19:00", title: "Ejercicio", kind: "EXERCISE", status: "OUT_OF_SCOPE" },
+  { id: "exercise", time: "19:00", title: "Ejercicio", kind: "EXERCISE", status: "PENDING" },
   { id: "dinner", time: "21:00", title: "Cena", kind: "MEAL", status: "PENDING", mealSlot: "DINNER" },
 ];
 
@@ -84,6 +84,14 @@ export default async function PatientTodayPage() {
   });
   const measurementRegistered = measurementsTodayCount > 0;
 
+  const exercisesTodayCount = await prisma.exerciseEntry.count({
+    where: {
+      patientId: user.id,
+      recordedAt: { gte: startOfLocalDay(now), lte: endOfLocalDay(now) },
+    },
+  });
+  const exerciseRegistered = exercisesTodayCount > 0;
+
   return (
     <div className="space-y-6">
       <div>
@@ -101,9 +109,11 @@ export default async function PatientTodayPage() {
         {AGENDA.map((item) => {
           const isMeal = item.kind === "MEAL";
           const isMeasurement = item.kind === "MEASUREMENT";
+          const isExercise = item.kind === "EXERCISE";
           const isRegistered =
             (isMeal && item.mealSlot && registeredSlots.has(item.mealSlot)) ||
-            (isMeasurement && measurementRegistered);
+            (isMeasurement && measurementRegistered) ||
+            (isExercise && exerciseRegistered);
           const status: AgendaStatus = isRegistered ? "REGISTERED" : item.status;
           return (
             <article key={item.id} className="card space-y-2">
@@ -157,6 +167,30 @@ export default async function PatientTodayPage() {
                       href="/patient/measurements"
                       className="btn-ghost text-sm"
                     >
+                      Ver historial
+                    </Link>
+                  </div>
+                ) : isExercise && exerciseRegistered ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Link href="/patient/exercises" className="btn-ghost text-sm">
+                      Ver historial
+                    </Link>
+                    <Link
+                      href="/patient/exercises/new"
+                      className="btn-ghost text-sm"
+                    >
+                      Registrar otro
+                    </Link>
+                  </div>
+                ) : isExercise ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href="/patient/exercises/new"
+                      className="btn-primary text-sm"
+                    >
+                      Registrar
+                    </Link>
+                    <Link href="/patient/exercises" className="btn-ghost text-sm">
                       Ver historial
                     </Link>
                   </div>
