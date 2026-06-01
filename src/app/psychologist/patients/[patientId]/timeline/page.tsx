@@ -8,6 +8,11 @@ import { displayEmailFor } from "@/lib/demo";
 import EntryControls from "./entry-controls";
 import VideoCard from "@/components/video-card";
 import { MEAL_SLOT_LABEL, type MealSlot } from "@/lib/meal-slots";
+import {
+  MEASUREMENT_TYPE_LABEL,
+  formatMeasurementValue,
+  type MeasurementType,
+} from "@/lib/measurements";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +81,20 @@ export default async function PatientTimelinePage({
     new Set(mealsToday.map((m) => m.mealSlot).filter((s): s is MealSlot => Boolean(s))),
   );
 
+  const recentMeasurements = await prisma.measurementEntry.findMany({
+    where: { patientId: params.patientId, psychologistId: user.id },
+    orderBy: { recordedAt: "desc" },
+    take: 3,
+    select: {
+      id: true,
+      type: true,
+      value: true,
+      unit: true,
+      note: true,
+      recordedAt: true,
+    },
+  });
+
   const withUrls = await Promise.all(
     entries.map(async (e) => ({
       ...e,
@@ -133,6 +152,37 @@ export default async function PatientTimelinePage({
               </div>
             )}
           </>
+        )}
+      </section>
+
+      <section className="card space-y-2">
+        <h3 className="text-sm font-semibold">Peso y medidas</h3>
+        {recentMeasurements.length === 0 ? (
+          <p className="text-sm text-pulso-soft">
+            Todavía no hay peso o medidas registradas.
+          </p>
+        ) : (
+          <ul className="space-y-1 text-sm">
+            {recentMeasurements.map((m) => {
+              const label = MEASUREMENT_TYPE_LABEL[m.type as MeasurementType];
+              const valueLabel = formatMeasurementValue(
+                m.type as MeasurementType,
+                m.value,
+                m.unit,
+              );
+              return (
+                <li key={m.id}>
+                  <span className="font-medium">{label}</span>
+                  {valueLabel ? <> · {valueLabel}</> : null}
+                  {" · "}
+                  <span className="text-pulso-soft">{formatHHMM(m.recordedAt)}</span>
+                  {m.note && (
+                    <span className="text-pulso-soft italic"> · “{m.note}”</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
 

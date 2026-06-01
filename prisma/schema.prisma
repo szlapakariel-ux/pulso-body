@@ -52,6 +52,16 @@ enum MealSlot {
   CUSTOM
 }
 
+enum MeasurementType {
+  WEIGHT
+  WAIST
+  HIP
+  CHEST
+  ARM
+  PROGRESS_PHOTO
+  CUSTOM
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -68,6 +78,8 @@ model User {
   notes                PrivateNote[]
   transcriptRequests   Transcription[]
   dailySummarySettings DailySummarySettings?
+  measurementsAsPatient MeasurementEntry[]   @relation("MeasurementsAsPatient")
+  measurementsAsPsych   MeasurementEntry[]   @relation("MeasurementsAsPsych")
 }
 
 model PatientProfile {
@@ -136,6 +148,27 @@ model Transcription {
 
   entry       TimelineEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
   requestedBy User          @relation(fields: [requestedById], references: [id])
+}
+
+model MeasurementEntry {
+  id             String          @id @default(cuid())
+  patientId      String
+  psychologistId String
+  type           MeasurementType
+  value          Float?
+  unit           String?
+  mediaKey       String?
+  mediaType      MediaType?
+  note           String?
+  recordedAt     DateTime
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  patient      User @relation("MeasurementsAsPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  psychologist User @relation("MeasurementsAsPsych", fields: [psychologistId], references: [id])
+
+  @@index([patientId, recordedAt])
+  @@index([psychologistId, recordedAt])
 }
 
 model DailySummarySettings {
