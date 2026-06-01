@@ -20,6 +20,9 @@ export async function POST(
     if (!entry || entry.psychologistId !== user.id) {
       throw new HttpError(403, "Registro no accesible");
     }
+    if (entry.mediaType !== "AUDIO" && entry.mediaType !== "VIDEO") {
+      throw new HttpError(400, "Resumen IA disponible solo para audio/video.");
+    }
 
     const text = entry.transcription?.text?.trim();
     if (!text) {

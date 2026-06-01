@@ -8,6 +8,13 @@ import { handle } from "@/lib/http";
 const MAX_MB = Number(process.env.MAX_UPLOAD_MB || 100);
 const ALLOWED_AUDIO = ["audio/webm", "audio/mpeg", "audio/mp4", "audio/ogg", "audio/wav"];
 const ALLOWED_VIDEO = ["video/webm", "video/mp4", "video/quicktime", "video/ogg"];
+const ALLOWED_PHOTO = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+
+function allowedFor(mediaType: "AUDIO" | "VIDEO" | "PHOTO"): string[] {
+  if (mediaType === "AUDIO") return ALLOWED_AUDIO;
+  if (mediaType === "VIDEO") return ALLOWED_VIDEO;
+  return ALLOWED_PHOTO;
+}
 
 const ContextLabel = z
   .enum(["Casa", "Trabajo", "Tren", "Auto", "Calle", "Antes de dormir", "Otro"])
@@ -15,7 +22,7 @@ const ContextLabel = z
 
 const InitBody = z.object({
   action: z.literal("init"),
-  mediaType: z.enum(["AUDIO", "VIDEO"]),
+  mediaType: z.enum(["AUDIO", "VIDEO", "PHOTO"]),
   contentType: z.string().min(1),
   sizeBytes: z.number().int().positive(),
   recordedAt: z.string().datetime().optional(),
@@ -25,7 +32,7 @@ const InitBody = z.object({
 
 const CompleteBody = z.object({
   action: z.literal("complete"),
-  mediaType: z.enum(["AUDIO", "VIDEO"]),
+  mediaType: z.enum(["AUDIO", "VIDEO", "PHOTO"]),
   mediaKey: z.string().min(1),
   recordedAt: z.string().datetime().optional(),
   contextLabel: ContextLabel,
@@ -35,13 +42,13 @@ const CompleteBody = z.object({
 const Body = z.union([InitBody, CompleteBody]);
 
 function buildInternalTitle(
-  mediaType: "AUDIO" | "VIDEO",
+  mediaType: "AUDIO" | "VIDEO" | "PHOTO",
   contextLabel: string | undefined,
   when: Date,
 ): string {
   const hh = String(when.getHours()).padStart(2, "0");
   const mm = String(when.getMinutes()).padStart(2, "0");
-  const kind = mediaType === "AUDIO" ? "Audio" : "Video";
+  const kind = mediaType === "AUDIO" ? "Audio" : mediaType === "VIDEO" ? "Video" : "Foto";
   const ctx = contextLabel ? ` · ${contextLabel}` : "";
   return `${kind}${ctx} · ${hh}:${mm}`;
 }
@@ -58,7 +65,7 @@ export async function POST(req: Request) {
 
     if (parsed.data.action === "init") {
       const { mediaType, contentType, sizeBytes } = parsed.data;
-      const allowed = mediaType === "AUDIO" ? ALLOWED_AUDIO : ALLOWED_VIDEO;
+      const allowed = allowedFor(mediaType);
       if (!allowed.includes(contentType)) throw new HttpError(400, "Tipo de archivo no permitido");
       if (sizeBytes > MAX_MB * 1024 * 1024) {
         throw new HttpError(400, `Archivo excede ${MAX_MB} MB`);

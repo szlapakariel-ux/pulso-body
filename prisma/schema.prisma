@@ -15,6 +15,7 @@ enum Role {
 enum MediaType {
   AUDIO
   VIDEO
+  PHOTO
 }
 
 enum TranscriptionStatus {

@@ -59,8 +59,12 @@ export default async function PatientTimelinePage({
               <article key={e.id} className="card space-y-3">
                 <header>
                   <p className="text-sm text-pulso-soft">
-                    {e.mediaType === "AUDIO" ? "Audio" : "Video"} ·{" "}
-                    {formatDateTime(e.when)}
+                    {e.mediaType === "AUDIO"
+                      ? "Audio"
+                      : e.mediaType === "VIDEO"
+                        ? "Video"
+                        : "Foto"}{" "}
+                    · {formatDateTime(e.when)}
                   </p>
                   {e.contextLabel && (
                     <p className="text-sm mt-0.5">
@@ -80,11 +84,15 @@ export default async function PatientTimelinePage({
                   </p>
                 ) : e.mediaType === "AUDIO" ? (
                   <audio controls preload="none" src={e.mediaUrl} className="w-full" />
-                ) : (
+                ) : e.mediaType === "VIDEO" ? (
                   <VideoCard src={e.mediaUrl} />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={e.mediaUrl} alt="Foto registrada" className="w-full rounded-lg" />
                 )}
                 <EntryControls
                   entryId={e.id}
+                  mediaType={e.mediaType}
                   initialNotes={e.notes.map((n) => ({
                     id: n.id,
                     content: n.content,
