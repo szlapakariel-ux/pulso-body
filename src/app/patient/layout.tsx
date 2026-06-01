@@ -11,13 +11,19 @@ export default async function PatientLayout({ children }: { children: React.Reac
     <div className="min-h-screen">
       <header className="sticky top-0 z-10 bg-pulso-bg/90 backdrop-blur border-b border-pulso-mute">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/patient/timeline" className="text-xl font-semibold tracking-tight">
+          <Link href="/patient/today" className="text-xl font-semibold tracking-tight">
             Pulso Body
           </Link>
-          <div className="flex items-center gap-3 text-sm text-pulso-soft">
+          <nav className="flex items-center gap-3 text-sm text-pulso-soft">
+            <Link href="/patient/today" className="hover:underline">
+              Hoy
+            </Link>
+            <Link href="/patient/timeline" className="hover:underline">
+              Timeline
+            </Link>
             <span className="hidden sm:inline">{session.name}</span>
             <LogoutButton />
-          </div>
+          </nav>
         </div>
       </header>
       <div className="max-w-2xl mx-auto px-4 py-6">{children}</div>
