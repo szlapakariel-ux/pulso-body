@@ -11,6 +11,11 @@ import {
   resolveMealAdherence,
   type ScheduleForAdherence,
 } from "@/lib/meal-adherence";
+import {
+  startOfLocalDay,
+  endOfLocalDay,
+  formatDateAR,
+} from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 
@@ -37,29 +42,9 @@ const MOCK_MEALS: MockMealItem[] = [
   { id: "dinner", time: "21:00", title: "Cena", mealSlot: "DINNER" },
 ];
 
-function formatToday(): string {
-  return new Date().toLocaleDateString("es-AR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function startOfLocalDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-function endOfLocalDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
-}
-
 export default async function PatientTodayPage() {
   const user = await requireRolePage("PATIENT");
-  const today = formatToday();
+  const today = formatDateAR(new Date());
   const now = new Date();
   const range = { gte: startOfLocalDay(now), lte: endOfLocalDay(now) };
 

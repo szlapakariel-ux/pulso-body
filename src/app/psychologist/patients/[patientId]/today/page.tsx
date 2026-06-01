@@ -26,31 +26,14 @@ import {
   type ScheduleForAdherence,
 } from "@/lib/meal-adherence";
 
-export const dynamic = "force-dynamic";
+import {
+  startOfLocalDay,
+  endOfLocalDay,
+  formatHHMM,
+  formatDateAR,
+} from "@/lib/dates";
 
-function startOfLocalDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-function endOfLocalDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
-}
-function formatHHMM(d: Date): string {
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
-}
-function formatToday(): string {
-  return new Date().toLocaleDateString("es-AR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
+export const dynamic = "force-dynamic";
 
 export default async function PatientTodayForPsychologist({
   params,
@@ -219,7 +202,7 @@ export default async function PatientTodayForPsychologist({
         <p className="text-pulso-soft text-sm">
           {profile.user.name} · {displayEmailFor(profile.user.email)}
         </p>
-        <p className="text-sm mt-1 capitalize">{formatToday()}</p>
+        <p className="text-sm mt-1 capitalize">{formatDateAR(new Date())}</p>
       </div>
 
       <section className="card space-y-3">

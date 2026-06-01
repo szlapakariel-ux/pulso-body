@@ -24,24 +24,10 @@ import {
   type AdherenceResult,
 } from "@/lib/meal-adherence";
 
+import { startOfLocalDay, endOfLocalDay, dayKey } from "@/lib/dates";
+
 export const dynamic = "force-dynamic";
 
-function startOfLocalDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-function endOfLocalDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
-}
-function dayKey(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
 function formatDayLabel(d: Date): string {
   return new Intl.DateTimeFormat("es-AR", {
     weekday: "long",
