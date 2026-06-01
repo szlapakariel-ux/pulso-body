@@ -62,6 +62,23 @@ enum MeasurementType {
   CUSTOM
 }
 
+enum ExerciseType {
+  WALK
+  RUN
+  BIKE
+  STRENGTH
+  MOBILITY
+  SPORT
+  CUSTOM
+}
+
+enum ExerciseIntensity {
+  LOW
+  MEDIUM
+  HIGH
+  CUSTOM
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -80,6 +97,8 @@ model User {
   dailySummarySettings DailySummarySettings?
   measurementsAsPatient MeasurementEntry[]   @relation("MeasurementsAsPatient")
   measurementsAsPsych   MeasurementEntry[]   @relation("MeasurementsAsPsych")
+  exercisesAsPatient    ExerciseEntry[]      @relation("ExercisesAsPatient")
+  exercisesAsPsych      ExerciseEntry[]      @relation("ExercisesAsPsych")
 }
 
 model PatientProfile {
@@ -166,6 +185,27 @@ model MeasurementEntry {
 
   patient      User @relation("MeasurementsAsPatient", fields: [patientId], references: [id], onDelete: Cascade)
   psychologist User @relation("MeasurementsAsPsych", fields: [psychologistId], references: [id])
+
+  @@index([patientId, recordedAt])
+  @@index([psychologistId, recordedAt])
+}
+
+model ExerciseEntry {
+  id              String             @id @default(cuid())
+  patientId       String
+  psychologistId  String
+  type            ExerciseType
+  durationMinutes Int?
+  intensity       ExerciseIntensity?
+  note            String?
+  mediaKey        String?
+  mediaType       MediaType?
+  recordedAt      DateTime
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  patient      User @relation("ExercisesAsPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  psychologist User @relation("ExercisesAsPsych", fields: [psychologistId], references: [id])
 
   @@index([patientId, recordedAt])
   @@index([psychologistId, recordedAt])
