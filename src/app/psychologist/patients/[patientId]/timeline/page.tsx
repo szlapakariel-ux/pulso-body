@@ -11,10 +11,29 @@ import { MEAL_SLOT_LABEL, type MealSlot } from "@/lib/meal-slots";
 
 export const dynamic = "force-dynamic";
 
+function startOfLocalDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+function endOfLocalDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
+function formatHHMM(d: Date): string {
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
 export default async function PatientTimelinePage({
   params,
+  searchParams,
 }: {
   params: { patientId: string };
+  searchParams?: { filter?: string };
 }) {
   const user = await requireRolePage("PSYCHOLOGIST");
   const profile = await prisma.patientProfile.findUnique({
@@ -23,11 +42,39 @@ export default async function PatientTimelinePage({
   });
   if (!profile || profile.psychologistId !== user.id) notFound();
 
+  const filter = searchParams?.filter === "meals" ? "meals" : "all";
+
   const entries = await prisma.timelineEntry.findMany({
-    where: { patientId: params.patientId, psychologistId: user.id },
+    where: {
+      patientId: params.patientId,
+      psychologistId: user.id,
+      ...(filter === "meals" ? { entryKind: "MEAL" as const } : {}),
+    },
     orderBy: [{ recordedAt: "desc" }, { createdAt: "desc" }],
     include: { notes: true, transcription: true },
   });
+
+  const now = new Date();
+  const mealsToday = await prisma.timelineEntry.findMany({
+    where: {
+      patientId: params.patientId,
+      psychologistId: user.id,
+      entryKind: "MEAL",
+      recordedAt: { gte: startOfLocalDay(now), lte: endOfLocalDay(now) },
+    },
+    orderBy: { recordedAt: "desc" },
+    select: { mealSlot: true, recordedAt: true },
+  });
+
+  const todayCount = mealsToday.length;
+  const last = mealsToday[0];
+  const lastLabel =
+    last && last.recordedAt && last.mealSlot
+      ? `${MEAL_SLOT_LABEL[last.mealSlot as MealSlot]} · ${formatHHMM(last.recordedAt)}`
+      : null;
+  const slotsToday = Array.from(
+    new Set(mealsToday.map((m) => m.mealSlot).filter((s): s is MealSlot => Boolean(s))),
+  );
 
   const withUrls = await Promise.all(
     entries.map(async (e) => ({
@@ -37,6 +84,8 @@ export default async function PatientTimelinePage({
     })),
   );
   const groups = groupByDay(withUrls.map((e) => ({ ...e, createdAt: e.when })));
+
+  const baseHref = `/psychologist/patients/${params.patientId}/timeline`;
 
   return (
     <div className="space-y-6">
@@ -48,8 +97,66 @@ export default async function PatientTimelinePage({
         <p className="text-pulso-soft text-sm">{displayEmailFor(profile.user.email)}</p>
       </div>
 
+      <section className="card space-y-2">
+        <h3 className="text-sm font-semibold">Bitácora de comidas</h3>
+        {todayCount === 0 ? (
+          <p className="text-sm text-pulso-soft">
+            Todavía no hay comidas registradas hoy.
+          </p>
+        ) : (
+          <>
+            <p className="text-sm">
+              Hoy:{" "}
+              <span className="font-medium">
+                {todayCount} {todayCount === 1 ? "comida registrada" : "comidas registradas"}
+              </span>
+            </p>
+            {lastLabel && (
+              <p className="text-sm">
+                Última comida registrada:{" "}
+                <span className="font-medium">{lastLabel}</span>
+              </p>
+            )}
+            {slotsToday.length > 0 && (
+              <div className="text-sm">
+                <p className="text-pulso-soft">Slots registrados hoy:</p>
+                <ul className="mt-1 flex flex-wrap gap-2">
+                  {slotsToday.map((s) => (
+                    <li
+                      key={s}
+                      className="rounded-full bg-pulso-mute px-2 py-0.5 text-xs font-medium"
+                    >
+                      {MEAL_SLOT_LABEL[s]}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
+      </section>
+
+      <nav className="flex items-center gap-2 text-sm">
+        <Link
+          href={baseHref}
+          className={filter === "all" ? "btn-primary" : "btn-ghost"}
+        >
+          Todas
+        </Link>
+        <Link
+          href={`${baseHref}?filter=meals`}
+          className={filter === "meals" ? "btn-primary" : "btn-ghost"}
+        >
+          Solo comidas
+        </Link>
+      </nav>
+
       {groups.length === 0 && (
-        <div className="card text-pulso-soft">Este paciente aún no tiene registros.</div>
+        <div className="card text-pulso-soft">
+          {filter === "meals"
+            ? "Este paciente aún no tiene comidas registradas."
+            : "Este paciente aún no tiene registros."}
+        </div>
       )}
 
       {groups.map((g) => (
