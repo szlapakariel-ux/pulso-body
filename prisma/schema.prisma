@@ -79,6 +79,12 @@ enum ExerciseIntensity {
   CUSTOM
 }
 
+enum ScheduleStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -99,6 +105,8 @@ model User {
   measurementsAsPsych   MeasurementEntry[]   @relation("MeasurementsAsPsych")
   exercisesAsPatient    ExerciseEntry[]      @relation("ExercisesAsPatient")
   exercisesAsPsych      ExerciseEntry[]      @relation("ExercisesAsPsych")
+  mealSchedulesAsPatient MealSchedule[]      @relation("MealSchedulesAsPatient")
+  mealSchedulesAsPsych   MealSchedule[]      @relation("MealSchedulesAsPsych")
 }
 
 model PatientProfile {
@@ -209,6 +217,28 @@ model ExerciseEntry {
 
   @@index([patientId, recordedAt])
   @@index([psychologistId, recordedAt])
+}
+
+model MealSchedule {
+  id             String         @id @default(cuid())
+  patientId      String
+  psychologistId String
+  mealSlot       MealSlot
+  label          String?
+  targetTime     String
+  daysOfWeek     Int[]
+  status         ScheduleStatus @default(ACTIVE)
+  startsAt       DateTime?
+  endsAt         DateTime?
+  note           String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  patient      User @relation("MealSchedulesAsPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  psychologist User @relation("MealSchedulesAsPsych",   fields: [psychologistId], references: [id])
+
+  @@index([patientId, status])
+  @@index([psychologistId, status])
 }
 
 model DailySummarySettings {
