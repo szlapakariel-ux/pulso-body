@@ -148,6 +148,12 @@ export default async function PatientTimelinePage({
           >
             Ver resumen semanal
           </Link>
+          <Link
+            href={`/psychologist/patients/${params.patientId}/meal-schedules`}
+            className="btn-ghost text-sm"
+          >
+            Configurar comidas
+          </Link>
         </div>
       </div>
 
