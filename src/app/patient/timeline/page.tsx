@@ -4,6 +4,7 @@ import { requireRolePage } from "@/lib/auth";
 import { presignDownload } from "@/lib/s3";
 import { groupByDay, formatDateTime } from "@/lib/dates";
 import VideoCard from "@/components/video-card";
+import { MEAL_SLOT_LABEL, type MealSlot } from "@/lib/meal-slots";
 
 export const dynamic = "force-dynamic";
 
@@ -49,11 +50,22 @@ export default async function PatientTimelinePage() {
               <article key={e.id} className="card space-y-3">
                 <div>
                   <p className="text-sm text-pulso-soft">
-                    {e.mediaType === "AUDIO"
-                      ? "Audio"
-                      : e.mediaType === "VIDEO"
-                        ? "Video"
-                        : "Foto"}{" "}
+                    {e.entryKind === "MEAL" ? (
+                      <span className="inline-flex items-center gap-1">
+                        <span className="rounded-full bg-pulso-mute px-2 py-0.5 text-xs font-medium">
+                          Comida
+                        </span>
+                        {e.mealSlot && (
+                          <span>· {MEAL_SLOT_LABEL[e.mealSlot as MealSlot]}</span>
+                        )}
+                      </span>
+                    ) : e.mediaType === "AUDIO" ? (
+                      "Audio"
+                    ) : e.mediaType === "VIDEO" ? (
+                      "Video"
+                    ) : (
+                      "Foto"
+                    )}{" "}
                     · {formatDateTime(e.when)}
                   </p>
                   {e.contextLabel && (

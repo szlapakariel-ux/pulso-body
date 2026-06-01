@@ -38,6 +38,20 @@ enum SummaryChannel {
   EMAIL
 }
 
+enum EntryKind {
+  GENERIC
+  MEAL
+}
+
+enum MealSlot {
+  BREAKFAST
+  SNACK_AM
+  LUNCH
+  SNACK_PM
+  DINNER
+  CUSTOM
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -83,6 +97,8 @@ model TimelineEntry {
   aiTitle        String?
   aiSummary      String?
   aiStatus       AiStatus  @default(NOT_REQUESTED)
+  entryKind      EntryKind @default(GENERIC)
+  mealSlot       MealSlot?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

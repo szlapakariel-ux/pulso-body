@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { MealSlot } from "@/lib/meal-slots";
 
 type MediaType = "AUDIO" | "VIDEO" | "PHOTO";
 type RecordableType = "AUDIO" | "VIDEO";
 type Mode = "choose" | "record-audio" | "record-video" | "attach";
+type Intent = "generic" | "meal";
 
 const CONTEXT_OPTIONS = [
   "Casa",
@@ -44,9 +46,16 @@ function fmtTime(s: number) {
   return `${m}:${ss}`;
 }
 
-export default function NewEntryForm() {
+export default function NewEntryForm({
+  intent = "generic",
+  mealSlot = null,
+}: {
+  intent?: Intent;
+  mealSlot?: MealSlot | null;
+} = {}) {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("choose");
+  const isMeal = intent === "meal";
+  const [mode, setMode] = useState<Mode>(isMeal ? "attach" : "choose");
   const [mediaType, setMediaType] = useState<MediaType | null>(null);
   const [contextLabel, setContextLabel] = useState<ContextLabel | "">("");
   const [contextNote, setContextNote] = useState("");
@@ -265,6 +274,9 @@ export default function NewEntryForm() {
             recordedAt,
             contextLabel: ctxLabel,
             contextNote: ctxNote,
+            ...(isMeal && mediaType === "PHOTO"
+              ? { entryKind: "MEAL", mealSlot: mealSlot ?? "CUSTOM" }
+              : {}),
           }),
         });
       } catch {
@@ -368,17 +380,20 @@ export default function NewEntryForm() {
 
         <div>
           <label className="label" htmlFor="file">
-            Foto, audio o video
+            {isMeal ? "Foto de la comida" : "Foto, audio o video"}
           </label>
           <input
             id="file"
             type="file"
-            accept="image/*,audio/*,video/*"
+            accept={isMeal ? "image/*" : "image/*,audio/*,video/*"}
+            capture={isMeal ? "environment" : undefined}
             onChange={onFileChange}
             className="input"
           />
           <p className="text-xs text-pulso-soft mt-1">
-            Detectamos el tipo según el archivo.
+            {isMeal
+              ? "Sacá una foto o elegí una de tu galería."
+              : "Detectamos el tipo según el archivo."}
           </p>
         </div>
 

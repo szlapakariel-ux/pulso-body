@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 import { requireRolePage } from "@/lib/auth";
+import type { MealSlot } from "@/lib/meal-slots";
 
 export const dynamic = "force-dynamic";
 
@@ -12,16 +14,17 @@ type AgendaItem = {
   title: string;
   kind: AgendaKind;
   status: AgendaStatus;
+  mealSlot?: MealSlot;
 };
 
 const AGENDA: AgendaItem[] = [
-  { id: "breakfast", time: "08:00", title: "Desayuno", kind: "MEAL", status: "PENDING" },
+  { id: "breakfast", time: "08:00", title: "Desayuno", kind: "MEAL", status: "PENDING", mealSlot: "BREAKFAST" },
   { id: "weight", time: "08:00", title: "Peso / medidas", kind: "MEASUREMENT", status: "OUT_OF_SCOPE" },
-  { id: "snack-am", time: "11:00", title: "Colación", kind: "MEAL", status: "PENDING" },
-  { id: "lunch", time: "13:30", title: "Almuerzo", kind: "MEAL", status: "PENDING" },
-  { id: "snack-pm", time: "17:00", title: "Merienda", kind: "MEAL", status: "PENDING" },
+  { id: "snack-am", time: "11:00", title: "Colación", kind: "MEAL", status: "PENDING", mealSlot: "SNACK_AM" },
+  { id: "lunch", time: "13:30", title: "Almuerzo", kind: "MEAL", status: "PENDING", mealSlot: "LUNCH" },
+  { id: "snack-pm", time: "17:00", title: "Merienda", kind: "MEAL", status: "PENDING", mealSlot: "SNACK_PM" },
   { id: "exercise", time: "19:00", title: "Ejercicio", kind: "EXERCISE", status: "OUT_OF_SCOPE" },
-  { id: "dinner", time: "21:00", title: "Cena", kind: "MEAL", status: "PENDING" },
+  { id: "dinner", time: "21:00", title: "Cena", kind: "MEAL", status: "PENDING", mealSlot: "DINNER" },
 ];
 
 const KIND_LABEL: Record<AgendaKind, string> = {
@@ -45,9 +48,33 @@ function formatToday(): string {
   });
 }
 
+function startOfLocalDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+function endOfLocalDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
 export default async function PatientTodayPage() {
-  await requireRolePage("PATIENT");
+  const user = await requireRolePage("PATIENT");
   const today = formatToday();
+
+  const now = new Date();
+  const mealsToday = await prisma.timelineEntry.findMany({
+    where: {
+      patientId: user.id,
+      entryKind: "MEAL",
+      recordedAt: { gte: startOfLocalDay(now), lte: endOfLocalDay(now) },
+    },
+    select: { mealSlot: true },
+  });
+  const registeredSlots = new Set(
+    mealsToday.map((e) => e.mealSlot).filter((s): s is MealSlot => Boolean(s)),
+  );
 
   return (
     <div className="space-y-6">
@@ -65,7 +92,9 @@ export default async function PatientTodayPage() {
       <section className="space-y-3">
         {AGENDA.map((item) => {
           const isMeal = item.kind === "MEAL";
-          const isOutOfScope = item.status === "OUT_OF_SCOPE";
+          const isRegistered =
+            isMeal && item.mealSlot && registeredSlots.has(item.mealSlot);
+          const status: AgendaStatus = isRegistered ? "REGISTERED" : item.status;
           return (
             <article key={item.id} className="card space-y-2">
               <div className="flex items-center justify-between gap-3">
@@ -76,11 +105,15 @@ export default async function PatientTodayPage() {
                   <p className="text-base font-medium">{item.title}</p>
                 </div>
                 <span className="text-xs text-pulso-soft">
-                  {STATUS_LABEL[item.status]}
+                  {STATUS_LABEL[status]}
                 </span>
               </div>
               <div>
-                {isMeal ? (
+                {isMeal && isRegistered ? (
+                  <Link href="/patient/timeline" className="btn-ghost text-sm">
+                    Ver en timeline
+                  </Link>
+                ) : isMeal ? (
                   <Link
                     href={`/patient/new-entry?intent=meal&slot=${item.id}`}
                     className="btn-primary text-sm"
