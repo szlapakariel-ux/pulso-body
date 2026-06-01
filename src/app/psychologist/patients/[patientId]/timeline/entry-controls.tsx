@@ -19,15 +19,18 @@ type AiState = {
 
 export default function EntryControls({
   entryId,
+  mediaType,
   initialNotes,
   initialTranscription,
   initialAi,
 }: {
   entryId: string;
+  mediaType: "AUDIO" | "VIDEO" | "PHOTO";
   initialNotes: Note[];
   initialTranscription: Trans;
   initialAi: AiState;
 }) {
+  const supportsAi = mediaType !== "PHOTO";
   const [notes, setNotes] = useState<Note[]>(initialNotes);
   const [draft, setDraft] = useState("");
   const [savingNote, setSavingNote] = useState(false);
@@ -161,6 +164,14 @@ export default function EntryControls({
         </form>
       </section>
 
+      {!supportsAi && (
+        <p className="text-sm text-pulso-soft italic">
+          Transcripción y resumen IA disponibles solo para audio/video.
+        </p>
+      )}
+
+      {supportsAi && (
+      <>
       <section>
         <div className="flex items-center justify-between gap-3">
           <h5 className="text-sm font-semibold">Transcripción</h5>
@@ -261,6 +272,8 @@ export default function EntryControls({
           </div>
         )}
       </section>
+      </>
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>

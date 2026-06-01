@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type MediaType = "AUDIO" | "VIDEO";
+type MediaType = "AUDIO" | "VIDEO" | "PHOTO";
+type RecordableType = "AUDIO" | "VIDEO";
 type Mode = "choose" | "record-audio" | "record-video" | "attach";
 
 const CONTEXT_OPTIONS = [
@@ -17,7 +18,7 @@ const CONTEXT_OPTIONS = [
 ] as const;
 type ContextLabel = (typeof CONTEXT_OPTIONS)[number];
 
-function pickMime(kind: MediaType): string {
+function pickMime(kind: RecordableType): string {
   const candidates =
     kind === "AUDIO"
       ? ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/mpeg"]
@@ -102,7 +103,7 @@ export default function NewEntryForm() {
     setMediaType(null);
   }
 
-  async function startRecording(kind: MediaType) {
+  async function startRecording(kind: RecordableType) {
     setError(null);
     resetCapture();
     setMediaType(kind);
@@ -175,8 +176,12 @@ export default function NewEntryForm() {
       setFile(null);
       return;
     }
-    const isVideo = f.type.startsWith("video/");
-    setMediaType(isVideo ? "VIDEO" : "AUDIO");
+    const detected: MediaType = f.type.startsWith("image/")
+      ? "PHOTO"
+      : f.type.startsWith("video/")
+        ? "VIDEO"
+        : "AUDIO";
+    setMediaType(detected);
     setFile(f);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(URL.createObjectURL(f));
@@ -192,7 +197,11 @@ export default function NewEntryForm() {
     try {
       const rawContentType =
         blobOrFile.type ||
-        (mediaType === "AUDIO" ? "audio/webm" : "video/webm");
+        (mediaType === "AUDIO"
+          ? "audio/webm"
+          : mediaType === "VIDEO"
+            ? "video/webm"
+            : "image/jpeg");
       const contentType = baseMime(rawContentType);
       const recordedAt = new Date().toISOString();
       const ctxLabel = contextLabel || undefined;
@@ -359,12 +368,12 @@ export default function NewEntryForm() {
 
         <div>
           <label className="label" htmlFor="file">
-            Audio o video
+            Foto, audio o video
           </label>
           <input
             id="file"
             type="file"
-            accept="audio/*,video/*"
+            accept="image/*,audio/*,video/*"
             onChange={onFileChange}
             className="input"
           />
@@ -378,8 +387,11 @@ export default function NewEntryForm() {
             <p className="text-xs text-pulso-soft">Vista previa:</p>
             {mediaType === "AUDIO" ? (
               <audio controls src={previewUrl} className="w-full" />
-            ) : (
+            ) : mediaType === "VIDEO" ? (
               <video controls playsInline src={previewUrl} className="w-full rounded-lg" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={previewUrl} alt="Vista previa" className="w-full rounded-lg" />
             )}
           </div>
         )}
@@ -402,7 +414,12 @@ export default function NewEntryForm() {
   }
 
   // record-audio / record-video
-  const kind: MediaType = mediaType ?? (mode === "record-video" ? "VIDEO" : "AUDIO");
+  const kind: RecordableType =
+    mediaType === "AUDIO" || mediaType === "VIDEO"
+      ? mediaType
+      : mode === "record-video"
+        ? "VIDEO"
+        : "AUDIO";
 
   return (
     <div className="card space-y-4">
