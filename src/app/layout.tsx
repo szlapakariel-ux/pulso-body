@@ -2,11 +2,11 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Pulso",
-  description: "Espacio simple para registrar y compartir con tu psicóloga",
+  title: "Pulso Body",
+  description: "Bitácora diaria de nutrición, ejercicio, peso y medidas, guiada por tu profesional",
   appleWebApp: {
     capable: true,
-    title: "Pulso",
+    title: "Pulso Body",
     statusBarStyle: "default",
   },
 };

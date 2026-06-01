@@ -1,17 +1,36 @@
-# Pulso
+# Pulso Body
 
-App de acompañamiento entre sesiones. El paciente registra audios o videos cortos
-con un título y fecha; el psicólogo ve la línea de tiempo, agrega notas privadas
-y solicita transcripciones bajo demanda.
+Bitácora diaria de **nutrición, ejercicio, peso y medidas corporales**, guiada
+por un profesional y registrada en tiempo real por el paciente/cliente.
+
+El profesional define un plan. El paciente registra. La app permite comparar lo
+**programado** con lo **realmente registrado**.
 
 Stack: **Next.js 14 (App Router) + TypeScript + Tailwind + Prisma + PostgreSQL (Railway) + S3/R2**.
+
+> **Estado actual:** adaptación inicial desde la base técnica de Pulso. No es
+> el MVP final. Algunas **rutas internas, modelos Prisma y nombres de roles**
+> todavía conservan el vocabulario heredado (`/patient`, `/psychologist`,
+> `PATIENT`, `PSYCHOLOGIST`, `TimelineEntry`, etc.) y se irán migrando en los
+> próximos microciclos. Ver `docs/pb-1-mapa-tecnico-adaptacion.md`.
+
+Documentos de referencia:
+
+- `docs/contrato-producto-pulso-body.md` — qué es Pulso Body, roles y alcance.
+- `docs/pb-1-mapa-tecnico-adaptacion.md` — mapa técnico de adaptación.
+- `docs/pb-2-resultado-renombrado-identidad.md` — resultado de este microciclo.
 
 ---
 
 ## Roles
 
-- **Paciente**: ve solo su propia línea de tiempo, crea registros, reproduce sus archivos.
-- **Psicólogo**: ve la lista de pacientes asignados, su línea de tiempo, agrega notas privadas y solicita transcripciones.
+- **Paciente / cliente**: registra ingestas, ejercicio y medidas; ve su propia
+  línea de tiempo.
+- **Profesional** (nutricionista, entrenador, coach de hábitos o profesional de
+  salud): define el plan, observa la bitácora, agrega notas privadas.
+
+Internamente los roles todavía se llaman `PATIENT` y `PSYCHOLOGIST` por
+herencia técnica. Se renombrarán en un microciclo dedicado.
 
 Permisos aplicados en **backend** (no solo en frontend). Ver checklist más abajo.
 
@@ -37,11 +56,11 @@ El login es por **selector de perfil** (no email/password). En `/login`
 aparecen tres botones que crean sesión directamente contra el perfil demo
 correspondiente.
 
-| Botón                          | Nombre              | Email visible                  | Rol            |
-|--------------------------------|---------------------|--------------------------------|----------------|
-| Entrar como psicóloga demo     | Psicóloga Demo      | `psicologa.demo@pulso.local`   | `PSYCHOLOGIST` |
-| Entrar como paciente demo 1    | Paciente Demo 1     | `paciente1.demo@pulso.local`   | `PATIENT`      |
-| Entrar como paciente demo 2    | Paciente Demo 2     | `paciente2.demo@pulso.local`   | `PATIENT`      |
+| Botón                              | Nombre              | Email visible                  | Rol            |
+|------------------------------------|---------------------|--------------------------------|----------------|
+| Entrar como profesional demo       | Psicóloga Demo      | `psicologa.demo@pulso.local`   | `PSYCHOLOGIST` |
+| Entrar como paciente demo 1        | Paciente Demo 1     | `paciente1.demo@pulso.local`   | `PATIENT`      |
+| Entrar como paciente demo 2        | Paciente Demo 2     | `paciente2.demo@pulso.local`   | `PATIENT`      |
 
 > El email visible es **cosmético**. Internamente cada perfil tiene un email
 > único distinto (constraint `@unique` en Prisma) y un `id` distinto. Los
@@ -49,6 +68,9 @@ correspondiente.
 
 > Los registros de seed apuntan a `mediaKey` ficticias: aparecen en la timeline,
 > pero la reproducción solo funciona con archivos subidos desde la app a R2/S3.
+
+> Los nombres internos del seed (`Psicóloga Demo`, etc.) todavía corresponden
+> al vocabulario heredado y se actualizarán cuando se renombren los roles.
 
 ---
 
@@ -102,7 +124,7 @@ npx prisma validate
 
 ---
 
-## Páginas
+## Páginas (estructura actual heredada)
 
 ```
 /login
@@ -112,7 +134,12 @@ npx prisma validate
 /psychologist/patients/[patientId]/timeline
 ```
 
-## Endpoints (API Routes)
+> Rutas objetivo (`/client/...`, `/professional/...`) y nuevas vistas
+> (agenda diaria, registro de comida con foto, peso/medidas) se incorporarán
+> en los próximos microciclos según el orden definido en
+> `docs/pb-1-mapa-tecnico-adaptacion.md`.
+
+## Endpoints (API Routes — estructura actual heredada)
 
 ```
 POST  /api/auth/login
@@ -143,7 +170,7 @@ POST  /api/psychologist/entries/:entryId/transcription-request
   `PENDING`. La UI muestra *"Transcripción pendiente de configuración"* hasta que se
   conecte un proveedor real (Whisper, OpenAI, AssemblyAI).
 - **Aislamiento**: cada query filtra por `patientId === user.id` (paciente) o
-  `psychologistId === user.id` (psicólogo). Las relaciones se revalidan antes de
+  `psychologistId === user.id` (profesional). Las relaciones se revalidan antes de
   cualquier escritura.
 
 ---
@@ -152,7 +179,7 @@ POST  /api/psychologist/entries/:entryId/transcription-request
 
 - [x] Auth con cookie HttpOnly + JWT firmado (`AUTH_SECRET` por env).
 - [x] Validación de rol en **todos** los endpoints sensibles (`requireRole`).
-- [x] Validación de pertenencia paciente-psicólogo antes de leer/escribir.
+- [x] Validación de pertenencia paciente-profesional antes de leer/escribir.
 - [x] Endpoint de paciente nunca devuelve `notes` ni `transcription`.
 - [x] Validación server-side con `zod` en cada body de API.
 - [x] Validación de tipo MIME y tamaño máximo (`MAX_UPLOAD_MB`).
@@ -166,20 +193,24 @@ POST  /api/psychologist/entries/:entryId/transcription-request
 
 ---
 
-## TODO futuro
+## TODO futuro (Pulso Body)
 
-- [ ] Conectar proveedor real de transcripción en `src/lib/transcription.ts`
-      (recomendado: Whisper API u OpenAI). El endpoint ya hace `upsert` del estado.
-- [ ] Worker/queue para procesar transcripciones de forma asíncrona y actualizar el estado.
-- [ ] Grabación in-browser con `MediaRecorder` (hoy se usa el selector de archivos
-      del SO, que ya cubre cámara/mic en móvil).
-- [ ] Eliminación de registros y borrado de objetos en R2 al borrar entrada.
+Ver `docs/pb-1-mapa-tecnico-adaptacion.md` para el orden recomendado de
+microciclos (PB-3 modelo Prisma objetivo, PB-4 foto en registros, PB-5 agenda
+diaria, PB-6 registro de comida con foto, PB-7 vista profesional de bitácora,
+PB-8 peso y medidas, PB-9 ejercicio programado, PB-10 resumen semanal).
+
+TODO técnico heredado todavía pendiente:
+
+- [ ] Conectar proveedor real de transcripción en `src/lib/transcription.ts`.
+- [ ] Worker/queue para transcripciones asíncronas.
+- [ ] Grabación in-browser con `MediaRecorder`.
+- [ ] Eliminación de registros y borrado de objetos en R2.
 - [ ] Rate limiting en `/api/auth/login`.
-- [ ] Self-onboarding: alta de psicólogos y asignación de pacientes desde UI
-      (hoy es solo por seed/DB).
-- [ ] Tests E2E (Playwright) cubriendo flujos paciente / psicólogo y aislamiento.
+- [ ] Self-onboarding de profesionales y asignación de clientes desde UI.
+- [ ] Tests E2E (Playwright).
 - [ ] Internacionalización (hoy ES-AR fijo).
-- [ ] Indicador de progreso real durante la subida (XHR + onprogress).
+- [ ] Indicador de progreso real durante la subida.
 
 ---
 
@@ -189,12 +220,12 @@ POST  /api/psychologist/entries/:entryId/transcription-request
 2. Tocar **+ Nuevo registro**.
 3. Poner título, elegir Audio o Video, adjuntar/grabar.
 4. Guardar → vuelve a `/patient/timeline` con el registro recién creado.
-5. Verificar que **no** existe ningún link al panel del psicólogo.
+5. Verificar que **no** existe ningún link al panel del profesional.
 
-## Probar psicólogo
+## Probar profesional
 
-1. En `/login` tocar **Entrar como psicólogo**.
-2. Ver lista de pacientes.
+1. En `/login` tocar **Entrar como profesional demo**.
+2. Ver lista de pacientes/clientes.
 3. Entrar a la timeline de un paciente.
 4. Agregar una nota privada → aparece solo en este panel.
 5. Tocar **Solicitar transcripción** → estado pasa a *Transcripción pendiente de configuración*.

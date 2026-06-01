@@ -227,7 +227,7 @@ export default function EntryControls({
 
         {!hasTranscript && ai.status !== "COMPLETED" && !aiBusy && (
           <p className="text-sm text-pulso-soft mt-1">
-            Pulso va a transcribir el audio antes de generar el resumen.
+            Pulso Body va a transcribir el audio antes de generar el resumen.
           </p>
         )}
         {aiStage === "transcribing" && (
