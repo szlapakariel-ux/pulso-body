@@ -99,10 +99,104 @@ async function main() {
     }
   }
 
+  // ---- Mini-seed Pulso Body (PB-12B) ----
+  // Idempotente: cada upsert/findFirst evita duplicar entre corridas.
+  // Solo para Paciente Demo 1, para que Paciente Demo 2 quede "en blanco"
+  // y permita demos diferenciadas.
+  const SEED_MARKER = "Seed demo PB-12B";
+
+  const mealSchedulesSeed: Array<{
+    mealSlot: "BREAKFAST" | "SNACK_AM" | "LUNCH" | "SNACK_PM" | "DINNER";
+    targetTime: string;
+    daysOfWeek: number[];
+    label?: string;
+  }> = [
+    { mealSlot: "BREAKFAST", targetTime: "08:00", daysOfWeek: [1, 2, 3, 4, 5] },
+    { mealSlot: "LUNCH",     targetTime: "13:30", daysOfWeek: [1, 2, 3, 4, 5] },
+    { mealSlot: "SNACK_PM",  targetTime: "17:00", daysOfWeek: [1, 2, 3, 4, 5] },
+    { mealSlot: "DINNER",    targetTime: "21:00", daysOfWeek: [0, 1, 2, 3, 4, 5, 6] },
+  ];
+
+  for (const s of mealSchedulesSeed) {
+    const existing = await prisma.mealSchedule.findFirst({
+      where: {
+        patientId: paciente1.id,
+        mealSlot: s.mealSlot,
+        targetTime: s.targetTime,
+      },
+    });
+    if (!existing) {
+      await prisma.mealSchedule.create({
+        data: {
+          patientId: paciente1.id,
+          psychologistId: psicologo.id,
+          mealSlot: s.mealSlot,
+          targetTime: s.targetTime,
+          daysOfWeek: s.daysOfWeek,
+          label: s.label ?? null,
+          note: SEED_MARKER,
+        },
+      });
+    }
+  }
+
+  const measurementsSeed: Array<{
+    type: "WEIGHT" | "WAIST";
+    value: number;
+    unit: string;
+  }> = [
+    { type: "WEIGHT", value: 84.5, unit: "kg" },
+    { type: "WAIST",  value: 98,   unit: "cm" },
+  ];
+
+  for (const m of measurementsSeed) {
+    const existing = await prisma.measurementEntry.findFirst({
+      where: {
+        patientId: paciente1.id,
+        type: m.type,
+        note: SEED_MARKER,
+      },
+    });
+    if (!existing) {
+      await prisma.measurementEntry.create({
+        data: {
+          patientId: paciente1.id,
+          psychologistId: psicologo.id,
+          type: m.type,
+          value: m.value,
+          unit: m.unit,
+          note: SEED_MARKER,
+          recordedAt: new Date(),
+        },
+      });
+    }
+  }
+
+  const exerciseExisting = await prisma.exerciseEntry.findFirst({
+    where: {
+      patientId: paciente1.id,
+      type: "WALK",
+      note: SEED_MARKER,
+    },
+  });
+  if (!exerciseExisting) {
+    await prisma.exerciseEntry.create({
+      data: {
+        patientId: paciente1.id,
+        psychologistId: psicologo.id,
+        type: "WALK",
+        durationMinutes: 30,
+        intensity: "MEDIUM",
+        note: SEED_MARKER,
+        recordedAt: new Date(),
+      },
+    });
+  }
+
   console.log("Seed listo. Perfiles demo (login por selector):");
   console.log("  - Psicóloga Demo (PSYCHOLOGIST)");
-  console.log("  - Paciente Demo 1 (PATIENT)");
-  console.log("  - Paciente Demo 2 (PATIENT)");
+  console.log("  - Paciente Demo 1 (PATIENT) — con MealSchedule + peso/cintura + caminata (PB-12B)");
+  console.log("  - Paciente Demo 2 (PATIENT) — sin datos demo, escenario en blanco");
 }
 
 main()
