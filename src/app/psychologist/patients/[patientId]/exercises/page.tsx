@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireRolePage } from "@/lib/auth";
 import { presignDownload } from "@/lib/s3";
+import PhotoPreview from "@/components/photo-preview";
 import { formatDateTime } from "@/lib/dates";
 import { displayEmailFor } from "@/lib/demo";
 import {
@@ -120,12 +121,7 @@ export default async function PatientExercisesForPsychologist({
                   <p className="text-sm text-pulso-soft italic">“{e.note}”</p>
                 )}
                 {e.mediaUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={e.mediaUrl}
-                    alt="Foto del ejercicio"
-                    className="w-full rounded-lg"
-                  />
+                  <PhotoPreview src={e.mediaUrl} alt="Foto del ejercicio" />
                 )}
               </li>
             );
