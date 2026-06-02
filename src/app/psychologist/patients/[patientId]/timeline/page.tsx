@@ -13,6 +13,7 @@ import {
 import { displayEmailFor } from "@/lib/demo";
 import EntryControls from "./entry-controls";
 import VideoCard from "@/components/video-card";
+import PhotoPreview from "@/components/photo-preview";
 import { MEAL_SLOT_LABEL, type MealSlot } from "@/lib/meal-slots";
 import {
   MEASUREMENT_TYPE_LABEL,
@@ -333,8 +334,7 @@ export default async function PatientTimelinePage({
                 ) : e.mediaType === "VIDEO" ? (
                   <VideoCard src={e.mediaUrl} />
                 ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={e.mediaUrl} alt="Foto registrada" className="w-full rounded-lg" />
+                  <PhotoPreview src={e.mediaUrl} alt="Foto registrada" />
                 )}
                 <EntryControls
                   entryId={e.id}

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireRolePage } from "@/lib/auth";
 import { presignDownload } from "@/lib/s3";
+import PhotoPreview from "@/components/photo-preview";
 import { formatDateTime } from "@/lib/dates";
 import { displayEmailFor } from "@/lib/demo";
 import {
@@ -127,12 +128,7 @@ export default async function PatientMeasurementsForPsychologist({
                   <p className="text-sm text-pulso-soft italic">“{m.note}”</p>
                 )}
                 {m.mediaUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={m.mediaUrl}
-                    alt="Foto de progreso"
-                    className="w-full rounded-lg"
-                  />
+                  <PhotoPreview src={m.mediaUrl} alt="Foto de progreso" />
                 )}
               </li>
             );

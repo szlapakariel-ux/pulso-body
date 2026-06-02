@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireRolePage } from "@/lib/auth";
 import { presignDownload } from "@/lib/s3";
+import PhotoPreview from "@/components/photo-preview";
 import { displayEmailFor } from "@/lib/demo";
 import { MEAL_SLOT_LABEL, type MealSlot } from "@/lib/meal-slots";
 import {
@@ -296,12 +297,7 @@ export default async function PatientTodayForPsychologist({
                     </p>
                   )}
                   {m.mediaUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={m.mediaUrl}
-                      alt="Foto de comida"
-                      className="w-full rounded-lg"
-                    />
+                    <PhotoPreview src={m.mediaUrl} alt="Foto de comida" />
                   )}
                 </li>
               );
@@ -345,12 +341,7 @@ export default async function PatientTodayForPsychologist({
                     </p>
                   )}
                   {m.mediaUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={m.mediaUrl}
-                      alt="Foto de progreso"
-                      className="w-full rounded-lg"
-                    />
+                    <PhotoPreview src={m.mediaUrl} alt="Foto de progreso" />
                   )}
                 </li>
               );
@@ -395,12 +386,7 @@ export default async function PatientTodayForPsychologist({
                     </p>
                   )}
                   {e.mediaUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={e.mediaUrl}
-                      alt="Foto del ejercicio"
-                      className="w-full rounded-lg"
-                    />
+                    <PhotoPreview src={e.mediaUrl} alt="Foto del ejercicio" />
                   )}
                 </li>
               );
