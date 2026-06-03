@@ -10,9 +10,32 @@ const TypeEnum = z.enum([
   "HIP",
   "CHEST",
   "ARM",
+  "NECK",
+  "THIGH",
+  "BODY_FAT",
   "PROGRESS_PHOTO",
   "CUSTOM",
 ]);
+
+const VALUE_REQUIRED: ReadonlyArray<z.infer<typeof TypeEnum>> = [
+  "WEIGHT",
+  "WAIST",
+  "HIP",
+  "CHEST",
+  "ARM",
+  "NECK",
+  "THIGH",
+  "BODY_FAT",
+];
+
+const CM_TYPES: ReadonlyArray<z.infer<typeof TypeEnum>> = [
+  "WAIST",
+  "HIP",
+  "CHEST",
+  "ARM",
+  "NECK",
+  "THIGH",
+];
 
 const Body = z.object({
   type: TypeEnum,
@@ -29,9 +52,8 @@ function normalizeUnit(
   unit: string | undefined,
 ): string | undefined {
   if (type === "WEIGHT") return "kg";
-  if (type === "WAIST" || type === "HIP" || type === "CHEST" || type === "ARM") {
-    return "cm";
-  }
+  if (type === "BODY_FAT") return "%";
+  if (CM_TYPES.includes(type)) return "cm";
   return unit;
 }
 
@@ -52,7 +74,9 @@ export async function POST(req: Request) {
 
     if (type === "WEIGHT") {
       if (value == null) throw new HttpError(400, "El peso requiere un valor numérico.");
-    } else if (type === "WAIST" || type === "HIP" || type === "CHEST" || type === "ARM") {
+    } else if (type === "BODY_FAT") {
+      if (value == null) throw new HttpError(400, "La grasa corporal requiere un valor numérico.");
+    } else if (VALUE_REQUIRED.includes(type)) {
       if (value == null) throw new HttpError(400, "La medida requiere un valor numérico.");
     } else if (type === "PROGRESS_PHOTO") {
       if (!mediaKey) throw new HttpError(400, "La foto de progreso requiere un archivo.");
