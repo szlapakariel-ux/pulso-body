@@ -144,6 +144,12 @@ export default async function PatientTimelinePage({
           >
             Configurar comidas
           </Link>
+          <Link
+            href={`/psychologist/patients/${params.patientId}/plan`}
+            className="btn-ghost text-sm"
+          >
+            Plan
+          </Link>
         </div>
       </div>
 
