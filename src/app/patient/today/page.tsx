@@ -48,7 +48,7 @@ export default async function PatientTodayPage() {
   const now = new Date();
   const range = { gte: startOfLocalDay(now), lte: endOfLocalDay(now) };
 
-  const [mealsToday, schedules, measurementsTodayCount, exercisesTodayCount] =
+  const [mealsToday, schedules, measurementsTodayCount, exercisesTodayCount, activePlanCount] =
     await Promise.all([
       prisma.timelineEntry.findMany({
         where: {
@@ -68,10 +68,14 @@ export default async function PatientTodayPage() {
       prisma.exerciseEntry.count({
         where: { patientId: user.id, recordedAt: range },
       }),
+      prisma.nutritionPlan.count({
+        where: { patientId: user.id, status: "ACTIVE" },
+      }),
     ]);
 
   const measurementRegistered = measurementsTodayCount > 0;
   const exerciseRegistered = exercisesTodayCount > 0;
+  const hasActivePlan = activePlanCount > 0;
 
   const schedulesForToday: ScheduleForAdherence[] = schedules
     .filter((s) =>
@@ -137,6 +141,18 @@ export default async function PatientTodayPage() {
         <p className="text-pulso-soft text-sm">Agenda diaria de Pulso Body</p>
         <p className="text-sm mt-1 capitalize">{today}</p>
       </div>
+
+      {hasActivePlan && (
+        <Link href="/patient/plan" className="card flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Tu plan</p>
+            <p className="text-xs text-pulso-soft">
+              Objetivo, guías por comida y objetivos semanales.
+            </p>
+          </div>
+          <span className="text-sm text-pulso-soft">Ver →</span>
+        </Link>
+      )}
 
       {scheduledFallback && (
         <div className="card text-sm text-pulso-soft">

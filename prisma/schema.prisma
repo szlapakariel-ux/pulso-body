@@ -110,6 +110,10 @@ model User {
   exercisesAsPsych      ExerciseEntry[]      @relation("ExercisesAsPsych")
   mealSchedulesAsPatient MealSchedule[]      @relation("MealSchedulesAsPatient")
   mealSchedulesAsPsych   MealSchedule[]      @relation("MealSchedulesAsPsych")
+  nutritionPlansAsPatient NutritionPlan[]    @relation("NutritionPlansAsPatient")
+  nutritionPlansAsPsych   NutritionPlan[]    @relation("NutritionPlansAsPsych")
+  goalPlansAsPatient      GoalPlan[]         @relation("GoalPlansAsPatient")
+  goalPlansAsPsych        GoalPlan[]         @relation("GoalPlansAsPsych")
 }
 
 model PatientProfile {
@@ -243,6 +247,78 @@ model MealSchedule {
 
   @@index([patientId, status])
   @@index([psychologistId, status])
+}
+
+model NutritionPlan {
+  id             String         @id @default(cuid())
+  patientId      String
+  psychologistId String
+  title          String
+  goal           String?
+  generalNotes   String?
+  startsAt       DateTime       @default(now())
+  endsAt         DateTime?
+  status         ScheduleStatus @default(ACTIVE)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  patient      User            @relation("NutritionPlansAsPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  psychologist User            @relation("NutritionPlansAsPsych",   fields: [psychologistId], references: [id])
+  guidelines   MealGuideline[]
+
+  @@index([patientId, status])
+  @@index([psychologistId, status])
+}
+
+model MealGuideline {
+  id              String   @id @default(cuid())
+  nutritionPlanId String
+  mealSlot        MealSlot
+  title           String?
+  description     String
+  exampleMenu     String?
+  order           Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  plan NutritionPlan @relation(fields: [nutritionPlanId], references: [id], onDelete: Cascade)
+
+  @@index([nutritionPlanId])
+}
+
+model GoalPlan {
+  id             String         @id @default(cuid())
+  patientId      String
+  psychologistId String
+  title          String
+  startsAt       DateTime       @default(now())
+  status         ScheduleStatus @default(ACTIVE)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  patient      User         @relation("GoalPlansAsPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  psychologist User         @relation("GoalPlansAsPsych",   fields: [psychologistId], references: [id])
+  weeklyGoals  WeeklyGoal[]
+
+  @@index([patientId, status])
+  @@index([psychologistId, status])
+}
+
+model WeeklyGoal {
+  id         String         @id @default(cuid())
+  goalPlanId String
+  weekNumber Int
+  what       String
+  why        String?
+  how        String?
+  comments   String?
+  status     ScheduleStatus @default(ACTIVE)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  goalPlan GoalPlan @relation(fields: [goalPlanId], references: [id], onDelete: Cascade)
+
+  @@index([goalPlanId])
 }
 
 model DailySummarySettings {
