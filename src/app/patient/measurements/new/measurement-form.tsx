@@ -15,6 +15,9 @@ const TYPE_OPTIONS: MeasurementType[] = [
   "HIP",
   "CHEST",
   "ARM",
+  "NECK",
+  "THIGH",
+  "BODY_FAT",
   "PROGRESS_PHOTO",
   "CUSTOM",
 ];
@@ -159,7 +162,9 @@ export default function MeasurementForm({
             className="input"
             value={valueStr}
             onChange={(e) => setValueStr(e.target.value)}
-            placeholder={unit === "kg" ? "Ej: 74.5" : "Ej: 82"}
+            placeholder={
+              unit === "kg" ? "Ej: 74.5" : unit === "%" ? "Ej: 22.5" : "Ej: 82"
+            }
           />
         </div>
       )}

@@ -4,6 +4,9 @@ export type MeasurementType =
   | "HIP"
   | "CHEST"
   | "ARM"
+  | "NECK"
+  | "THIGH"
+  | "BODY_FAT"
   | "PROGRESS_PHOTO"
   | "CUSTOM";
 
@@ -13,23 +16,38 @@ export const MEASUREMENT_TYPE_LABEL: Record<MeasurementType, string> = {
   HIP: "Cadera",
   CHEST: "Pecho",
   ARM: "Brazo",
+  NECK: "Cuello",
+  THIGH: "Muslo",
+  BODY_FAT: "Grasa corporal",
   PROGRESS_PHOTO: "Foto de progreso",
   CUSTOM: "Otro",
 };
 
+const CM_TYPES: MeasurementType[] = ["WAIST", "HIP", "CHEST", "ARM", "NECK", "THIGH"];
+
 export const NUMERIC_TYPES: MeasurementType[] = [
+  "WEIGHT",
+  ...CM_TYPES,
+  "BODY_FAT",
+];
+
+const KNOWN_TYPES: MeasurementType[] = [
   "WEIGHT",
   "WAIST",
   "HIP",
   "CHEST",
   "ARM",
+  "NECK",
+  "THIGH",
+  "BODY_FAT",
+  "PROGRESS_PHOTO",
+  "CUSTOM",
 ];
 
 export function defaultUnitFor(type: MeasurementType): string | null {
   if (type === "WEIGHT") return "kg";
-  if (type === "WAIST" || type === "HIP" || type === "CHEST" || type === "ARM") {
-    return "cm";
-  }
+  if (type === "BODY_FAT") return "%";
+  if (CM_TYPES.includes(type)) return "cm";
   return null;
 }
 
@@ -43,19 +61,8 @@ export function slugFromType(type: MeasurementType): string {
 
 export function typeFromSlug(slug: string | undefined | null): MeasurementType {
   if (!slug) return "CUSTOM";
-  const upper = slug.toUpperCase().replace(/-/g, "_");
-  if (
-    upper === "WEIGHT" ||
-    upper === "WAIST" ||
-    upper === "HIP" ||
-    upper === "CHEST" ||
-    upper === "ARM" ||
-    upper === "PROGRESS_PHOTO" ||
-    upper === "CUSTOM"
-  ) {
-    return upper;
-  }
-  return "CUSTOM";
+  const upper = slug.toUpperCase().replace(/-/g, "_") as MeasurementType;
+  return KNOWN_TYPES.includes(upper) ? upper : "CUSTOM";
 }
 
 export function formatMeasurementValue(

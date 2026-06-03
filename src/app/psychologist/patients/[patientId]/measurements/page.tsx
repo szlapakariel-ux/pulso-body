@@ -20,6 +20,9 @@ const ALL_TYPES: MeasurementType[] = [
   "HIP",
   "CHEST",
   "ARM",
+  "NECK",
+  "THIGH",
+  "BODY_FAT",
   "PROGRESS_PHOTO",
   "CUSTOM",
 ];
