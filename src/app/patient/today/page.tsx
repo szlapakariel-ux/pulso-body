@@ -48,8 +48,14 @@ export default async function PatientTodayPage() {
   const now = new Date();
   const range = { gte: startOfLocalDay(now), lte: endOfLocalDay(now) };
 
-  const [mealsToday, schedules, measurementsTodayCount, exercisesTodayCount, activePlanCount] =
-    await Promise.all([
+  const [
+    mealsToday,
+    schedules,
+    measurementsTodayCount,
+    exercisesTodayCount,
+    activePlanCount,
+    activeTrainingCount,
+  ] = await Promise.all([
       prisma.timelineEntry.findMany({
         where: {
           patientId: user.id,
@@ -71,11 +77,15 @@ export default async function PatientTodayPage() {
       prisma.nutritionPlan.count({
         where: { patientId: user.id, status: "ACTIVE" },
       }),
+      prisma.trainingPlan.count({
+        where: { patientId: user.id, status: "ACTIVE" },
+      }),
     ]);
 
   const measurementRegistered = measurementsTodayCount > 0;
   const exerciseRegistered = exercisesTodayCount > 0;
   const hasActivePlan = activePlanCount > 0;
+  const hasActiveTraining = activeTrainingCount > 0;
 
   const schedulesForToday: ScheduleForAdherence[] = schedules
     .filter((s) =>
@@ -148,6 +158,18 @@ export default async function PatientTodayPage() {
             <p className="text-sm font-medium">Tu plan</p>
             <p className="text-xs text-pulso-soft">
               Objetivo, guías por comida y objetivos semanales.
+            </p>
+          </div>
+          <span className="text-sm text-pulso-soft">Ver →</span>
+        </Link>
+      )}
+
+      {hasActiveTraining && (
+        <Link href="/patient/training" className="card flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Tu rutina</p>
+            <p className="text-xs text-pulso-soft">
+              Días de entrenamiento y ejercicios.
             </p>
           </div>
           <span className="text-sm text-pulso-soft">Ver →</span>

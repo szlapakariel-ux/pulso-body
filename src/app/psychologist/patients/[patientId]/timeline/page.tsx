@@ -150,6 +150,12 @@ export default async function PatientTimelinePage({
           >
             Plan
           </Link>
+          <Link
+            href={`/psychologist/patients/${params.patientId}/training`}
+            className="btn-ghost text-sm"
+          >
+            Rutina
+          </Link>
         </div>
       </div>
 
