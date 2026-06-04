@@ -114,6 +114,8 @@ model User {
   nutritionPlansAsPsych   NutritionPlan[]    @relation("NutritionPlansAsPsych")
   goalPlansAsPatient      GoalPlan[]         @relation("GoalPlansAsPatient")
   goalPlansAsPsych        GoalPlan[]         @relation("GoalPlansAsPsych")
+  trainingPlansAsPatient  TrainingPlan[]     @relation("TrainingPlansAsPatient")
+  trainingPlansAsPsych    TrainingPlan[]     @relation("TrainingPlansAsPsych")
 }
 
 model PatientProfile {
@@ -319,6 +321,63 @@ model WeeklyGoal {
   goalPlan GoalPlan @relation(fields: [goalPlanId], references: [id], onDelete: Cascade)
 
   @@index([goalPlanId])
+}
+
+model TrainingPlan {
+  id             String         @id @default(cuid())
+  patientId      String
+  psychologistId String
+  title          String
+  notes          String?
+  daysPerWeek    Int?
+  startsAt       DateTime       @default(now())
+  endsAt         DateTime?
+  status         ScheduleStatus @default(ACTIVE)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  patient      User           @relation("TrainingPlansAsPatient", fields: [patientId], references: [id], onDelete: Cascade)
+  psychologist User           @relation("TrainingPlansAsPsych",   fields: [psychologistId], references: [id])
+  days         TrainingDay[]
+
+  @@index([patientId, status])
+  @@index([psychologistId, status])
+}
+
+model TrainingDay {
+  id             String   @id @default(cuid())
+  trainingPlanId String
+  dayNumber      Int
+  title          String?
+  warmup         String?
+  cooldown       String?
+  notes          String?
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  plan      TrainingPlan           @relation(fields: [trainingPlanId], references: [id], onDelete: Cascade)
+  exercises ExercisePrescription[]
+
+  @@index([trainingPlanId])
+}
+
+model ExercisePrescription {
+  id              String   @id @default(cuid())
+  trainingDayId   String
+  name            String
+  muscleGroup     String?
+  sets            Int?
+  reps            Int?
+  durationSeconds Int?
+  notes           String?
+  order           Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  day TrainingDay @relation(fields: [trainingDayId], references: [id], onDelete: Cascade)
+
+  @@index([trainingDayId])
 }
 
 model DailySummarySettings {
