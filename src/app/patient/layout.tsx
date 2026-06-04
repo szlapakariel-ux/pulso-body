@@ -21,9 +21,6 @@ export default async function PatientLayout({ children }: { children: React.Reac
             <Link href="/patient/timeline" className="hover:underline">
               Timeline
             </Link>
-            <Link href="/patient/measurements" className="hover:underline">
-              Medidas
-            </Link>
             <Link href="/patient/exercises" className="hover:underline">
               Ejercicio
             </Link>
@@ -34,6 +31,9 @@ export default async function PatientLayout({ children }: { children: React.Reac
               Rutina
             </Link>
             <span className="hidden sm:inline">{session.name}</span>
+            <Link href="/patient/measurements" className="hover:underline">
+              Medidas
+            </Link>
             <LogoutButton />
           </nav>
         </div>

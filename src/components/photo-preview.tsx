@@ -6,13 +6,15 @@ type Props = {
   src: string;
   alt: string;
   className?: string;
+  /** "full" (default) ocupa el ancho con alto acotado; "thumb" es miniatura cuadrada 150x150. */
+  variant?: "full" | "thumb";
 };
 
 /**
  * Preview de imagen con tamaño acotado y modal "lightbox" simple al click.
  * Usado en la vista profesional para no romper el flujo del card con fotos grandes.
  */
-export default function PhotoPreview({ src, alt, className = "" }: Props) {
+export default function PhotoPreview({ src, alt, className = "", variant = "full" }: Props) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -29,12 +31,18 @@ export default function PhotoPreview({ src, alt, className = "" }: Props) {
     };
   }, [open]);
 
+  const isThumb = variant === "thumb";
+
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`block w-full overflow-hidden rounded-lg ${className}`}
+        className={
+          isThumb
+            ? `block h-[150px] w-[150px] overflow-hidden rounded-lg ${className}`
+            : `block w-full overflow-hidden rounded-lg ${className}`
+        }
         aria-label="Ampliar foto"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -42,7 +50,11 @@ export default function PhotoPreview({ src, alt, className = "" }: Props) {
           src={src}
           alt={alt}
           loading="lazy"
-          className="w-full max-h-[260px] sm:max-h-[320px] object-cover rounded-lg"
+          className={
+            isThumb
+              ? "h-[150px] w-[150px] object-cover rounded-lg"
+              : "w-full max-h-[260px] sm:max-h-[320px] object-cover rounded-lg"
+          }
         />
       </button>
       {open && (

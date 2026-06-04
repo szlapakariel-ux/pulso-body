@@ -4,7 +4,21 @@ import { requireRolePage } from "@/lib/auth";
 import { presignDownload } from "@/lib/s3";
 import { groupByDay, formatDateTime } from "@/lib/dates";
 import VideoCard from "@/components/video-card";
+import PhotoPreview from "@/components/photo-preview";
 import { MEAL_SLOT_LABEL, type MealSlot } from "@/lib/meal-slots";
+
+function entryTitle(e: {
+  entryKind: string;
+  mealSlot: string | null;
+  mediaType: string;
+}): string {
+  if (e.entryKind === "MEAL") {
+    return e.mealSlot ? MEAL_SLOT_LABEL[e.mealSlot as MealSlot] : "Comida";
+  }
+  if (e.mediaType === "AUDIO") return "Audio";
+  if (e.mediaType === "VIDEO") return "Video";
+  return "Foto";
+}
 
 export const dynamic = "force-dynamic";
 
@@ -49,27 +63,14 @@ export default async function PatientTimelinePage() {
             {g.items.map((e) => (
               <article key={e.id} className="card space-y-3">
                 <div>
-                  <p className="text-sm text-pulso-soft">
-                    {e.entryKind === "MEAL" ? (
-                      <span className="inline-flex items-center gap-1">
-                        <span className="rounded-full bg-pulso-mute px-2 py-0.5 text-xs font-medium">
-                          Comida
-                        </span>
-                        {e.mealSlot && (
-                          <span>· {MEAL_SLOT_LABEL[e.mealSlot as MealSlot]}</span>
-                        )}
-                      </span>
-                    ) : e.mediaType === "AUDIO" ? (
-                      "Audio"
-                    ) : e.mediaType === "VIDEO" ? (
-                      "Video"
-                    ) : (
-                      "Foto"
-                    )}{" "}
-                    · {formatDateTime(e.when)}
+                  <p className="text-base font-semibold uppercase tracking-wide text-pulso-ink">
+                    {entryTitle(e)}
+                  </p>
+                  <p className="text-xs text-pulso-soft mt-0.5">
+                    {formatDateTime(e.when)}
                   </p>
                   {e.contextLabel && (
-                    <p className="text-sm mt-0.5">
+                    <p className="text-sm mt-1">
                       Contexto:{" "}
                       <span className="font-medium">{e.contextLabel}</span>
                     </p>
@@ -90,8 +91,7 @@ export default async function PatientTimelinePage() {
                   ) : e.mediaType === "VIDEO" ? (
                     <VideoCard src={e.mediaUrl} />
                   ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={e.mediaUrl} alt="Foto registrada" className="w-full rounded-lg" />
+                    <PhotoPreview src={e.mediaUrl} alt="Foto registrada" variant="thumb" />
                   )}
                 </div>
               </article>
