@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRolePage } from "@/lib/auth";
 import { presignDownload } from "@/lib/s3";
 import { formatDateTime } from "@/lib/dates";
+import PhotoPreview from "@/components/photo-preview";
 import {
   MEASUREMENT_TYPE_LABEL,
   formatMeasurementValue,
@@ -123,12 +124,7 @@ export default async function PatientMeasurementsPage({
                   <p className="text-sm text-pulso-soft italic">“{m.note}”</p>
                 )}
                 {m.mediaUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={m.mediaUrl}
-                    alt="Foto de progreso"
-                    className="w-full rounded-lg"
-                  />
+                  <PhotoPreview src={m.mediaUrl} alt="Foto de progreso" variant="thumb" />
                 )}
               </li>
             );
