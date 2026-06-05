@@ -10,7 +10,7 @@ import { MEAL_SLOT_LABEL, type MealSlot } from "@/lib/meal-slots";
 function entryTitle(e: {
   entryKind: string;
   mealSlot: string | null;
-  mediaType: string;
+  mediaType: string | null;
 }): string {
   if (e.entryKind === "MEAL") {
     return e.mealSlot ? MEAL_SLOT_LABEL[e.mealSlot as MealSlot] : "Comida";
@@ -82,7 +82,11 @@ export default async function PatientTimelinePage() {
                   )}
                 </div>
                 <div>
-                  {!e.mediaUrl ? (
+                  {!e.mediaKey ? (
+                    <p className="text-sm text-pulso-soft italic">
+                      Registro manual sin foto.
+                    </p>
+                  ) : !e.mediaUrl ? (
                     <p className="text-sm text-pulso-soft italic">
                       Almacenamiento no configurado todavía.
                     </p>

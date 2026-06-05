@@ -40,6 +40,12 @@ function baseMime(t: string): string {
   return t.split(";")[0].trim();
 }
 
+function nowLocalDatetime(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function fmtTime(s: number) {
   const m = Math.floor(s / 60);
   const ss = String(s % 60).padStart(2, "0");
@@ -104,6 +110,8 @@ export default function NewEntryForm({
   const [mediaType, setMediaType] = useState<MediaType | null>(null);
   const [contextLabel, setContextLabel] = useState<ContextLabel | "">("");
   const [contextNote, setContextNote] = useState("");
+  const [whenLocal, setWhenLocal] = useState<string>(nowLocalDatetime());
+  const [manualOnly, setManualOnly] = useState(false);
 
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -241,7 +249,53 @@ export default function NewEntryForm({
     setPreviewUrl(URL.createObjectURL(f));
   }
 
+  function recordedAtIso(): string {
+    if (whenLocal) {
+      const d = new Date(whenLocal);
+      if (!isNaN(d.getTime())) return d.toISOString();
+    }
+    return new Date().toISOString();
+  }
+
+  async function saveManualMeal() {
+    if (!isMeal) return;
+    const note = contextNote.trim();
+    if (!note) {
+      setError("Contanos qué comiste para registrar la comida sin foto.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setProgress("Guardando…");
+    try {
+      const res = await fetch("/api/patient/entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "meal-manual",
+          mealSlot: mealSlot ?? "CUSTOM",
+          recordedAt: recordedAtIso(),
+          contextLabel: contextLabel || undefined,
+          contextNote: note,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo guardar el registro");
+      router.replace("/patient/timeline");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error");
+    } finally {
+      setLoading(false);
+      setProgress("");
+    }
+  }
+
   async function save() {
+    if (isMeal && manualOnly) {
+      await saveManualMeal();
+      return;
+    }
     const blobOrFile: Blob | File | null = blob ?? file;
     if (!blobOrFile || !mediaType) return;
     setLoading(true);
@@ -257,7 +311,7 @@ export default function NewEntryForm({
             ? "video/webm"
             : "image/jpeg");
       const contentType = baseMime(rawContentType);
-      const recordedAt = new Date().toISOString();
+      const recordedAt = recordedAtIso();
       const ctxLabel = contextLabel || undefined;
       const ctxNote = contextNote.trim() || undefined;
 
@@ -397,26 +451,71 @@ export default function NewEntryForm({
           </button>
         </div>
 
-        <div>
-          <label className="label" htmlFor="file">
-            {isMeal ? "Foto de la comida" : "Foto, audio o video"}
-          </label>
-          <input
-            id="file"
-            type="file"
-            accept={isMeal ? "image/*" : "image/*,audio/*,video/*"}
-            capture={isMeal ? "environment" : undefined}
-            onChange={onFileChange}
-            className="input"
-          />
-          <p className="text-xs text-pulso-soft mt-1">
-            {isMeal
-              ? "Sacá una foto o elegí una de tu galería."
-              : "Detectamos el tipo según el archivo."}
-          </p>
-        </div>
+        {!(isMeal && manualOnly) && (
+          <div>
+            <label className="label" htmlFor="file">
+              {isMeal ? "Foto de la comida" : "Foto, audio o video"}
+            </label>
+            <input
+              id="file"
+              type="file"
+              accept={isMeal ? "image/*" : "image/*,audio/*,video/*"}
+              capture={isMeal ? "environment" : undefined}
+              onChange={onFileChange}
+              className="input"
+            />
+            <p className="text-xs text-pulso-soft mt-1">
+              {isMeal
+                ? "Sacá una foto o elegí una de tu galería."
+                : "Detectamos el tipo según el archivo."}
+            </p>
+          </div>
+        )}
 
-        {hasCapture && mediaType && previewUrl && (
+        {isMeal && (
+          <div>
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={manualOnly}
+                onChange={(e) => {
+                  setManualOnly(e.target.checked);
+                  if (e.target.checked) {
+                    resetCapture();
+                    setMediaType(null);
+                  }
+                }}
+                className="mt-1"
+              />
+              <span>
+                <span className="font-medium">Registrar manualmente sin foto</span>
+                <span className="block text-xs text-pulso-soft">
+                  Usalo si te olvidaste de sacar foto o estás cargando tarde.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+
+        {isMeal && (
+          <div>
+            <label className="label" htmlFor="when-local">
+              Hora en que comí
+            </label>
+            <input
+              id="when-local"
+              type="datetime-local"
+              className="input"
+              value={whenLocal}
+              onChange={(e) => setWhenLocal(e.target.value)}
+            />
+            <p className="text-xs text-pulso-soft mt-1">
+              Por defecto es ahora. Podés cambiarla si comiste antes.
+            </p>
+          </div>
+        )}
+
+        {hasCapture && mediaType && previewUrl && !(isMeal && manualOnly) && (
           <div className="space-y-2">
             <p className="text-xs text-pulso-soft">Vista previa:</p>
             {mediaType === "AUDIO" ? (
@@ -438,7 +537,10 @@ export default function NewEntryForm({
         <button
           type="button"
           onClick={save}
-          disabled={loading || !hasCapture}
+          disabled={
+            loading ||
+            (isMeal && manualOnly ? !contextNote.trim() : !hasCapture)
+          }
           className="btn-primary w-full disabled:opacity-60"
         >
           {loading ? "Guardando…" : "Guardar registro"}
