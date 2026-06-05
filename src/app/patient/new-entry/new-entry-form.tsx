@@ -46,6 +46,51 @@ function fmtTime(s: number) {
   return `${m}:${ss}`;
 }
 
+function ContextFields({
+  contextLabel,
+  contextNote,
+  setContextLabel,
+  setContextNote,
+}: {
+  contextLabel: ContextLabel | "";
+  contextNote: string;
+  setContextLabel: (v: ContextLabel | "") => void;
+  setContextNote: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="label">Contexto</label>
+        <div className="flex flex-wrap gap-2">
+          {CONTEXT_OPTIONS.map((c) => (
+            <button
+              type="button"
+              key={c}
+              onClick={() => setContextLabel(contextLabel === c ? "" : c)}
+              className={contextLabel === c ? "btn-primary" : "btn-ghost"}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className="label" htmlFor="ctxnote">
+          Agregar contexto breve (opcional)
+        </label>
+        <input
+          id="ctxnote"
+          maxLength={280}
+          className="input"
+          value={contextNote}
+          onChange={(e) => setContextNote(e.target.value)}
+          placeholder="Ej: volviendo del trabajo"
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function NewEntryForm({
   intent = "generic",
   mealSlot = null,
@@ -298,40 +343,14 @@ export default function NewEntryForm({
 
   const hasCapture = Boolean((blob && previewUrl) || file);
 
-  function ContextFields() {
-    return (
-      <div className="space-y-3">
-        <div>
-          <label className="label">Contexto</label>
-          <div className="flex flex-wrap gap-2">
-            {CONTEXT_OPTIONS.map((c) => (
-              <button
-                type="button"
-                key={c}
-                onClick={() => setContextLabel(contextLabel === c ? "" : c)}
-                className={contextLabel === c ? "btn-primary" : "btn-ghost"}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <label className="label" htmlFor="ctxnote">
-            Agregar contexto breve (opcional)
-          </label>
-          <input
-            id="ctxnote"
-            maxLength={280}
-            className="input"
-            value={contextNote}
-            onChange={(e) => setContextNote(e.target.value)}
-            placeholder="Ej: volviendo del trabajo"
-          />
-        </div>
-      </div>
-    );
-  }
+  const contextFields = (
+    <ContextFields
+      contextLabel={contextLabel}
+      contextNote={contextNote}
+      setContextLabel={setContextLabel}
+      setContextNote={setContextNote}
+    />
+  );
 
   if (mode === "choose") {
     return (
@@ -411,7 +430,7 @@ export default function NewEntryForm({
           </div>
         )}
 
-        <ContextFields />
+        {contextFields}
 
         {progress && <p className="text-sm text-pulso-soft">{progress}</p>}
         {error && <p className="text-sm text-red-600">{error}</p>}
@@ -495,7 +514,7 @@ export default function NewEntryForm({
         </p>
       )}
 
-      {hasCapture && <ContextFields />}
+      {hasCapture && contextFields}
 
       {progress && <p className="text-sm text-pulso-soft">{progress}</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
