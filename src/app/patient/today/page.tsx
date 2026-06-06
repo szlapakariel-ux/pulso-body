@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { requireRolePage } from "@/lib/auth";
 import { MEAL_SLOT_LABEL, type MealSlot } from "@/lib/meal-slots";
 import {
-  ADHERENCE_LABEL,
   scheduleAppliesToday,
   slotToSlug,
 } from "@/lib/meal-schedules";
@@ -190,43 +189,42 @@ export default async function PatientTodayPage() {
         {mealItems.map((item) => {
           const isRegistered =
             item.state === "REGISTRADO" || item.state === "REGISTRADO_TARDE";
+          const isLate = item.state === "REGISTRADO_TARDE";
           const isOmitido = item.state === "OMITIDO";
+          const actionHref = isRegistered
+            ? "/patient/timeline"
+            : `/patient/new-entry?intent=meal&slot=${item.slug}`;
+          const actionLabel = isRegistered ? "Ver" : "Registrar";
+          const actionClass = isRegistered || isOmitido ? "btn-ghost" : "btn-primary";
           return (
-            <article key={item.key} className="card space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs text-pulso-soft uppercase tracking-wide">
-                    {item.time} · Comida
-                  </p>
-                  <p className="text-base font-medium">{item.title}</p>
-                </div>
-                <span className="text-xs text-pulso-soft">
-                  {ADHERENCE_LABEL[item.state]}
-                </span>
-              </div>
-              <div>
-                {isRegistered ? (
-                  <Link href="/patient/timeline" className="btn-ghost text-sm">
-                    Ver en timeline
-                  </Link>
-                ) : isOmitido ? (
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      href={`/patient/new-entry?intent=meal&slot=${item.slug}`}
-                      className="btn-ghost text-sm"
-                    >
-                      Registrar igual
-                    </Link>
-                  </div>
-                ) : (
-                  <Link
-                    href={`/patient/new-entry?intent=meal&slot=${item.slug}`}
-                    className="btn-primary text-sm"
-                  >
-                    Registrar con foto
-                  </Link>
+            <article
+              key={item.key}
+              className="card flex items-center gap-3 py-2.5 px-3"
+            >
+              <span
+                aria-hidden
+                className={`text-lg leading-none ${
+                  isRegistered ? "text-pulso-accent" : "text-pulso-soft"
+                }`}
+              >
+                {isRegistered ? "✓" : "○"}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">
+                  {item.title} · {item.time}
+                </p>
+                {isLate && (
+                  <span className="text-[10px] uppercase tracking-wide text-pulso-soft">
+                    Tarde
+                  </span>
                 )}
               </div>
+              <Link
+                href={actionHref}
+                className={`${actionClass} text-xs !py-1.5 !px-3`}
+              >
+                {actionLabel}
+              </Link>
             </article>
           );
         })}
