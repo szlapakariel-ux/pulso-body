@@ -50,7 +50,6 @@ export default async function PatientTodayPage() {
   const [
     mealsToday,
     schedules,
-    measurementsTodayCount,
     exercisesTodayCount,
     activePlanCount,
     activeTrainingCount,
@@ -67,9 +66,6 @@ export default async function PatientTodayPage() {
         where: { patientId: user.id, status: "ACTIVE" },
         orderBy: { targetTime: "asc" },
       }),
-      prisma.measurementEntry.count({
-        where: { patientId: user.id, recordedAt: range },
-      }),
       prisma.exerciseEntry.count({
         where: { patientId: user.id, recordedAt: range },
       }),
@@ -81,7 +77,6 @@ export default async function PatientTodayPage() {
       }),
     ]);
 
-  const measurementRegistered = measurementsTodayCount > 0;
   const exerciseRegistered = exercisesTodayCount > 0;
   const hasActivePlan = activePlanCount > 0;
   const hasActiveTraining = activeTrainingCount > 0;
@@ -228,58 +223,6 @@ export default async function PatientTodayPage() {
             </article>
           );
         })}
-      </section>
-
-      <section className="space-y-3">
-        <h3 className="text-sm font-semibold text-pulso-soft uppercase tracking-wide">
-          Peso / medidas
-        </h3>
-        <article className="card space-y-2">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs text-pulso-soft uppercase tracking-wide">
-                08:00 · Medición
-              </p>
-              <p className="text-base font-medium">Peso / medidas</p>
-            </div>
-            <span className="text-xs text-pulso-soft">
-              {measurementRegistered ? "Registrado" : "Pendiente"}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {measurementRegistered ? (
-              <>
-                <Link
-                  href="/patient/measurements"
-                  className="btn-ghost text-sm"
-                >
-                  Ver historial
-                </Link>
-                <Link
-                  href="/patient/measurements/new?type=weight"
-                  className="btn-ghost text-sm"
-                >
-                  Registrar otra
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/patient/measurements/new?type=weight"
-                  className="btn-primary text-sm"
-                >
-                  Registrar
-                </Link>
-                <Link
-                  href="/patient/measurements"
-                  className="btn-ghost text-sm"
-                >
-                  Ver historial
-                </Link>
-              </>
-            )}
-          </div>
-        </article>
       </section>
 
       <section className="space-y-3">
