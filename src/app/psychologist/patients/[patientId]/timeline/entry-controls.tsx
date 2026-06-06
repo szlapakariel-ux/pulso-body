@@ -25,7 +25,7 @@ export default function EntryControls({
   initialAi,
 }: {
   entryId: string;
-  mediaType: "AUDIO" | "VIDEO" | "PHOTO";
+  mediaType: "AUDIO" | "VIDEO" | "PHOTO" | null;
   initialNotes: Note[];
   initialTranscription: Trans;
   initialAi: AiState;

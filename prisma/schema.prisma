@@ -137,8 +137,8 @@ model TimelineEntry {
   patientId      String
   psychologistId String
   title          String
-  mediaType      MediaType
-  mediaKey       String
+  mediaType      MediaType?
+  mediaKey       String?
   mediaUrl       String?
   recordedAt     DateTime?
   contextLabel   String?

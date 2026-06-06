@@ -16,6 +16,9 @@ export async function POST(_req: Request, { params }: { params: { entryId: strin
     if (!entry || entry.psychologistId !== user.id) {
       throw new HttpError(403, "Registro no accesible");
     }
+    if (!entry.mediaKey) {
+      throw new HttpError(400, "Este registro no tiene audio para transcribir.");
+    }
 
     await prisma.transcription.upsert({
       where: { entryId: entry.id },

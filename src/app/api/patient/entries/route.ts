@@ -50,7 +50,15 @@ const CompleteBody = z.object({
   mealSlot: MealSlotEnum.optional(),
 });
 
-const Body = z.union([InitBody, CompleteBody]);
+const ManualMealBody = z.object({
+  action: z.literal("meal-manual"),
+  mealSlot: MealSlotEnum,
+  recordedAt: z.string().datetime().optional(),
+  contextLabel: ContextLabel,
+  contextNote: z.string().min(1).max(280),
+});
+
+const Body = z.union([InitBody, CompleteBody, ManualMealBody]);
 
 const MEAL_SLOT_LABEL: Record<z.infer<typeof MealSlotEnum>, string> = {
   BREAKFAST: "Desayuno",
@@ -88,6 +96,27 @@ export async function POST(req: Request) {
     const json = await req.json().catch(() => null);
     const parsed = Body.safeParse(json);
     if (!parsed.success) throw new HttpError(400, "Datos inválidos");
+
+    if (parsed.data.action === "meal-manual") {
+      const { mealSlot, recordedAt, contextLabel, contextNote } = parsed.data;
+      const when = recordedAt ? new Date(recordedAt) : new Date();
+      const title = buildMealTitle(mealSlot, when);
+      const entry = await prisma.timelineEntry.create({
+        data: {
+          patientId: user.id,
+          psychologistId: profile.psychologistId,
+          title,
+          mediaType: null,
+          mediaKey: null,
+          recordedAt: when,
+          contextLabel: contextLabel ?? null,
+          contextNote: contextNote.trim(),
+          entryKind: "MEAL",
+          mealSlot,
+        },
+      });
+      return NextResponse.json({ id: entry.id });
+    }
 
     if (parsed.data.action === "init") {
       const { mediaType, contentType, sizeBytes } = parsed.data;
